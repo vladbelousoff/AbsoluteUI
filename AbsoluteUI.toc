@@ -1,0 +1,37 @@
+## Interface: 16001
+## Title: AbsoluteUI
+## Notes: Clean, modern restyle of Blizzard's UI: player, target and focus frames with 3D portraits, auras, castbars, action bars, tooltips, loot, bags, quest tracker and damage meter.
+## Author: Vladislav Belousov
+## Version: 1.0.0
+## Category: Unit Frames
+## X-License: MIT
+## SavedVariables: AbsoluteUIDB
+## IconTexture: Interface\Icons\Spell_Holy_MindVision
+## AddonCompartmentFunc: AbsoluteUI_OnAddonCompartmentClick
+
+# Foundation
+Core.lua
+Style.lua
+Media.lua
+Widgets.lua
+Values.lua
+Settings.lua
+
+# Unit frame parts
+Portrait.lua
+UnitCard.lua
+Auras.lua
+
+# Modules
+Player.lua
+Target.lua
+CastBars.lua
+ActionBars.lua
+MenuBars.lua
+QuestTracker.lua
+Loot.lua
+Bags.lua
+Tooltips.lua
+DamageMeter.lua
+
+Options.lua
