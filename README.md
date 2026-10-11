@@ -1,5 +1,7 @@
 # AbsoluteUI
 
+<p align="center"><img src=".github/logo.svg" width="128" alt="AbsoluteUI logo"></p>
+
 A clean, modern restyle of Blizzard's interface for **World of Warcraft Forever**.
 
 AbsoluteUI redraws Blizzard's frames in place instead of replacing them. Every
