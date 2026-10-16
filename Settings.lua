@@ -28,7 +28,7 @@ local TEXT_CHOICES = {
 NS.settingsSchema = {
 	{ page = "General" },
 	{ section = "Media" },
-	{ key = "barTexture", kind = "choice", default = "blizzard", apply = "live", label = "Bar texture",
+	{ key = "barTexture", kind = "choice", default = "bevel", apply = "live", label = "Bar texture",
 		tooltip = "Texture for every AbsoluteUI bar: unit frames, castbars, the tooltip health bar, "
 			.. "quest tracker bars and the damage meter.",
 		choices = function() return NS:MediaChoices(NS.barTextures) end },
@@ -75,6 +75,10 @@ NS.settingsSchema = {
 	{ key = "actionBars", kind = "toggle", default = true, apply = "reload",
 		label = "Restyle action bars",
 		tooltip = "Give action buttons, bag slots and the micro menu the AbsoluteUI look." },
+	{ key = "trackingBars", kind = "toggle", default = true, apply = "reload",
+		label = "Restyle experience and reputation bars",
+		tooltip = "Flat experience and reputation bars in the castbar look: purple experience (blue while "
+			.. "rested), reputation colored by standing. Edit Mode keeps placing them." },
 	{ section = "Visibility" },
 	{ key = "hideMicroMenu", kind = "toggle", default = false, label = "Hide micro menu",
 		tooltip = "Hide the menu buttons (character, spellbook, talents...). Their keybinds keep working. "

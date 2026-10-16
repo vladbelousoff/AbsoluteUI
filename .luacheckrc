@@ -61,7 +61,7 @@ read_globals = {
 	"ObjectiveTrackerFrame", "ObjectiveTrackerManager", "PlayerCastingBarFrame",
 	"PlayerFrame", "PlayerFrame_GetManaBar", "PlayerLevelText", "PlayerName",
 	"FocusFrame", "SettingsPanel", "TargetFrame",
-	"PlayerSpellsFrame", "TalentButtonUtil", "TalentFrameBaseMixin",
+	"PlayerSpellsFrame", "TalentButtonUtil", "TalentFrameBaseMixin", "StatusTrackingBarManager",
 	"MenuStyle1Mixin", "MenuVariants",
 	"GossipFrame", "QuestFrame", "QuestFrameGreetingPanel", "QuestFramePortrait",
 	"QuestGreetingFrameHorizontalBreak", "QuestProgressRequiredMoneyText",

@@ -100,8 +100,7 @@ local function OnUpdate(bar)
 		skin.lag:SetShown(fraction and true or false)
 	end
 	if skin.iconBox then
-		-- The player frame row has an icon of its own.
-		local shown = bar.Icon:IsShown() and not skin.onFrame
+		local shown = bar.Icon:IsShown()
 		skin.iconBox:SetShown(shown)
 		if skin.iconShadow then
 			skin.iconShadow:SetShown(shown)
@@ -123,8 +122,9 @@ local function Skin(bar, fillBar)
 	skin.box = NS:CreateBox(bar, bar, skin.fillBar, NS.color.tile)
 	skin.shadow = NS:CreateShadow(bar, skin.box.base)
 
+	-- A mirror bar has an icon of its own.
 	local icon = bar.Icon
-	if icon then
+	if icon and not fillBar then
 		NS:CropIcon(icon)
 		skin.iconBox = NS:CreateBox(bar, bar, icon, NS.color.panel)
 		skin.iconShadow = NS:CreateShadow(bar, skin.iconBox.base)
@@ -147,9 +147,10 @@ end
 ---------------------------------------------------------------------------
 -- Player castbar
 --
--- Blizzard's bar is left untouched. Our mirror bar covers its Edit Mode box
--- (the bar plus the name strip below it), or with "Attach to player frame"
--- sits in a row above the player panel with an icon of its own.
+-- Blizzard's bar is left untouched. Our mirror bar and its spell icon cover
+-- its Edit Mode box (the bar plus the name strip below it), or with "Attach
+-- to player frame" sit in a row above the player panel. Blizzard only shows
+-- its own icon in some looks, so ours is fed from it and always shown.
 ---------------------------------------------------------------------------
 
 local FOOTPRINT_BOTTOM = -12 -- Blizzard's editModeSelectionBottomOffset
@@ -230,15 +231,29 @@ local function UpdateLatency(bar)
 	skin.lag:SetPoint("BOTTOM" .. side, mirror, "BOTTOM" .. side)
 end
 
-local function PlaceOnFootprint(bar, mirror)
-	mirror:SetScale(1)
-	mirror:ClearAllPoints()
-	mirror:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
-	mirror:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, bar.editModeSelectionBottomOffset or FOOTPRINT_BOTTOM)
+-- The icon is a square as tall as the bar, left of it, sharing a border:
+-- | border | icon (square) | shared border | bar | border |
+local function PlaceIcon(mirror, size, px)
+	local icon = mirror.icon
+	icon:ClearAllPoints()
+	icon:SetSize(size, size)
+	icon:SetPoint("TOPRIGHT", mirror, "TOPLEFT", -px, 0)
 end
 
--- Laid out like the target's row (M:AnchorUnitBar), from the top-left:
--- | border | icon (square) | shared border | bar | border |
+-- The icon takes the left end of the box, so the borders still trace the
+-- Edit Mode selection. The look sets the bar's height.
+local function PlaceOnFootprint(bar, mirror)
+	mirror:SetScale(1)
+	local px = NS:Px(bar)
+	local bottom = bar.editModeSelectionBottomOffset or FOOTPRINT_BOTTOM
+	local size = bar:GetHeight() - bottom
+	mirror:ClearAllPoints()
+	mirror:SetPoint("TOPLEFT", bar, "TOPLEFT", size + px, 0)
+	mirror:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, bottom)
+	PlaceIcon(mirror, size, px)
+end
+
+-- Laid out like the target's row (M:AnchorUnitBar).
 local function PlaceOnFrame(bar, mirror, frame)
 	-- Takes the player frame's scale, whatever Edit Mode scales the castbar to.
 	local barScale = bar:GetEffectiveScale()
@@ -253,11 +268,7 @@ local function PlaceOnFrame(bar, mirror, frame)
 	mirror:ClearAllPoints()
 	mirror:SetSize((panelRight - px) - barLeft, height)
 	mirror:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", barLeft, panelTop + (ROW_GAP_PX + 1) * px)
-
-	local icon = mirror.icon
-	icon:ClearAllPoints()
-	icon:SetSize(height, height)
-	icon:SetPoint("TOPRIGHT", mirror, "TOPLEFT", -px, 0)
+	PlaceIcon(mirror, height, px)
 end
 
 local function PlacePlayerBar(bar)
@@ -271,12 +282,6 @@ local function PlacePlayerBar(bar)
 	else
 		PlaceOnFootprint(bar, mirror)
 	end
-	if bar.Icon then
-		bar.Icon:SetAlpha(onFrame and 0 or 1)
-	end
-	mirror.icon:SetShown(onFrame)
-	skin.rowIconBox:SetShown(onFrame)
-	skin.rowIconShadow:SetShown(onFrame)
 	LayoutPlayerTexts(bar)
 	UpdatePixels(bar)
 end
@@ -287,18 +292,19 @@ local function SetupPlayerBar(bar)
 	local skin = skins[bar]
 	if not skin then return end
 
-	-- Row icon, fed by Blizzard's hidden one.
+	-- Spell icon, fed by Blizzard's hidden one.
 	local icon = mirror:CreateTexture(nil, "ARTWORK")
 	NS:CropIcon(icon)
 	mirror.icon = icon
-	skin.rowIconBox = NS:CreateBox(bar, bar, icon, NS.color.panel)
-	skin.rowIconShadow = NS:CreateShadow(bar, skin.rowIconBox.base)
+	local iconBox = NS:CreateBox(bar, bar, icon, NS.color.panel)
+	NS:CreateShadow(bar, iconBox.base)
 	if bar.Icon then
+		bar.Icon:SetAlpha(0)
 		icon:SetTexture(bar.Icon:GetTexture())
 		NS:Hook(bar.Icon, "SetTexture", function(_, texture) icon:SetTexture(texture) end)
 	end
 
-	NS:Hook(bar, "SetLook", LayoutPlayerTexts)
+	NS:Hook(bar, "SetLook", function() PlacePlayerBar(bar) end)
 	NS:Hook(bar, "SetCastTimeTextShown", LayoutPlayerTexts)
 	-- Scales may have changed while it was hidden.
 	bar:HookScript("OnShow", function() PlacePlayerBar(bar) end)

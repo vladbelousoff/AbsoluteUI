@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- Your castbar shows the spell icon wherever Edit Mode places it, not only
+  when attached to the player frame.
+- Experience and reputation bars get the castbar look: a flat bar in a box,
+  purple experience (blue while rested, with rested experience shaded past
+  the fill) and reputation colored by standing. Toggle it under Action Bars.
+- Bevel is the default bar texture. Settings you already saved keep their
+  texture.
+
 ## 1.2.0
 
 - Skin for the world map and the quest log beside it: flat panel, a

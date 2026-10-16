@@ -66,6 +66,18 @@ NS.castColor = {
 	applyingtalents  = { 0.95, 0.76, 0.34 },
 }
 
+-- Experience and reputation bar fills.
+NS.trackingColor = {
+	xp         = { 0.60, 0.36, 0.85 },
+	rested     = { 0.26, 0.52, 0.92 },       -- experience while rested
+	restedPart = { 0.26, 0.52, 0.92, 0.40 }, -- rested experience past the fill
+	hostile    = NS.color.hostile,
+	unfriendly = { 0.88, 0.48, 0.22 },
+	neutral    = NS.color.neutral,
+	friendly   = NS.color.friendly,
+	renown     = { 0.30, 0.62, 0.95 },
+}
+
 -- Portrait accent for elites, rares and bosses.
 NS.rarity = {
 	elite     = { color = NS.color.accent, label = "Elite" },

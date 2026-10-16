@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: AbsoluteUI
-## Notes: Clean, modern restyle of Blizzard's UI: player, target, focus and pet frames with 3D portraits, auras, castbars, swing timers, action bars, tooltips, menus, loot, bags, spellbook, talents, quest windows, world map and quest log, quest tracker and damage meter.
+## Notes: Clean, modern restyle of Blizzard's UI: player, target, focus and pet frames with 3D portraits, auras, castbars, swing timers, action bars, experience and reputation bars, tooltips, menus, loot, bags, spellbook, talents, quest windows, world map and quest log, quest tracker and damage meter.
 ## Author: n08rainer
-## Version: 1.2.0
+## Version: 1.3.0
 ## Category: Unit Frames
 ## X-License: MIT
 ## X-Curse-Project-ID: 1739217
@@ -31,6 +31,7 @@ CastBars.lua
 SwingTimer.lua
 ActionBars.lua
 MenuBars.lua
+TrackingBars.lua
 QuestTracker.lua
 Loot.lua
 Bags.lua

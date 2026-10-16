@@ -19,9 +19,10 @@ exactly as before.
 - **Pet frame**: the same compact card, with a red border while the pet attacks.
 - **Auras**: target and focus buffs and debuffs with debuff type borders,
   stealable highlights, larger icons for your own auras and short countdowns.
-- **Castbars**: flat bars colored by cast type, an armored border for
-  uninterruptible casts and a latency marker on your own castbar. Your castbar
-  can optionally sit above the player frame. Swing timers get the same look.
+- **Castbars**: flat bars with the spell icon, colored by cast type, an armored
+  border for uninterruptible casts and a latency marker on your own castbar.
+  Your castbar can optionally sit above the player frame. Swing timers and the
+  experience and reputation bars get the same look.
 - **Action bars**: square icons, flat highlight states and readable outlined
   text for action buttons, the bag bar and the micro menu. The micro menu and
   bag bar can be hidden (keybinds keep working).
