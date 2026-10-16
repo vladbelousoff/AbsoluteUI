@@ -13,10 +13,7 @@ local M = NS:NewModule("Menus", { setting = "menus" })
 
 local MARGIN = NS.panelStyle.margin -- around the rows
 local TEXT_SIZE = 13
-local ROW_HOVER = { 1, 1, 1, 0.08 }
-local CHECK_BOX = { 0.20, 0.20, 0.22, 1 }
-local CHECK_SIZE = 12
-local CHECK_INSET = 3 -- the selected mark inside the box
+local ROW_HOVER = NS.color.rowHover
 
 ---------------------------------------------------------------------------
 -- Menu panels
@@ -86,18 +83,7 @@ end
 -- Checkboxes and radio buttons: a flat box, with an accent square when
 -- selected.
 local function SkinSelection(_, row)
-	local box, mark = row.leftTexture1, row.leftTexture2
-	if box then
-		box:SetColorTexture(CHECK_BOX[1], CHECK_BOX[2], CHECK_BOX[3], CHECK_BOX[4])
-		box:SetSize(CHECK_SIZE, CHECK_SIZE)
-	end
-	if box and mark then
-		local c = NS.color.accent
-		mark:SetColorTexture(c[1], c[2], c[3], 1)
-		mark:ClearAllPoints()
-		mark:SetPoint("TOPLEFT", box, "TOPLEFT", CHECK_INSET, -CHECK_INSET)
-		mark:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -CHECK_INSET, CHECK_INSET)
-	end
+	NS:StyleCheckbox(row.leftTexture1, row.leftTexture2)
 	StyleTexts(row)
 end
 

@@ -31,11 +31,11 @@ end
 local function SkinMinimizeButton(header, isCollapsed)
 	local button = header.MinimizeButton
 	if not button then return end
-	local glyph = NS:SkinGlyphButton(button, 16)
+	local vertical = NS:SkinPlusButton(button)
 	local function Apply(_, collapsed)
 		-- Blizzard swaps these atlases on every collapse.
 		NS:HideTextures(button:GetNormalTexture(), button:GetPushedTexture())
-		glyph:SetText(collapsed and "+" or "-")
+		vertical:SetShown(collapsed and true or false)
 	end
 	NS:Hook(header, "SetCollapsed", Apply)
 	Apply(header, isCollapsed)

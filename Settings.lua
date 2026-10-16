@@ -97,7 +97,10 @@ NS.settingsSchema = {
 			.. "in Bagnon's options)." },
 	{ key = "questFrames", kind = "toggle", default = true, apply = "reload", label = "Quest and gossip windows",
 		tooltip = "The NPC quest window (greeting, details, progress, rewards) and the gossip window, with "
-			.. "light text and reward cards in quality colors. The quest log on the map keeps its look." },
+			.. "light text and reward cards in quality colors." },
+	{ key = "worldMap", kind = "toggle", default = true, apply = "reload", label = "World map and quest log",
+		tooltip = "The world map window and the quest log beside it: flat panel, a breadcrumb navigation bar, "
+			.. "flat map buttons, quest headers as tiles, and quest details with light text and reward cards." },
 	{ key = "spellBook", kind = "toggle", default = true, apply = "reload", label = "Spellbook and talents",
 		tooltip = "The spellbook and talents window: square spell icons, flat category and spec tabs, "
 			.. "and talents with borders colored by state." },

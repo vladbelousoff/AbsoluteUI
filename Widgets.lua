@@ -1,7 +1,7 @@
 -- AbsoluteUI: drawing primitives and shared skinning helpers.
 --
--- Borders, boxes and tiles draw 1px lines as one physical pixel at any UI
--- scale and re-lay themselves out when the scale changes.
+-- Borders, boxes and tiles draw their lines in whole physical pixels at any
+-- resolution and UI scale, and re-lay themselves out when either changes.
 
 local _, NS = ...
 
@@ -9,7 +9,11 @@ local _, NS = ...
 -- Pixel helpers
 ---------------------------------------------------------------------------
 
--- Size of one physical pixel in a frame's coordinate space.
+-- Thickness of a line, in a frame's coordinate space: one UI unit rounded
+-- to whole physical pixels, at least one. That is one pixel at 1080p and
+-- most UI scales, and more on high-DPI screens, so lines keep their weight
+-- next to the rest of the UI. Only the screen's height matters, so wide
+-- screens get the same lines as 16:9 ones.
 function NS:Px(frame)
 	local scale = frame and frame:GetEffectiveScale() or UIParent:GetEffectiveScale()
 	if PixelUtil and PixelUtil.GetNearestPixelSize then
@@ -193,7 +197,8 @@ function NS:CreateShadow(drawOn, rectRegion)
 end
 
 ---------------------------------------------------------------------------
--- Box: flat background plus a 1px border hugging `region` from outside.
+-- Box: flat background plus a 1px border hugging `region` from outside, or
+-- from inside after box:SetInside(true).
 ---------------------------------------------------------------------------
 
 local BoxMixin = {}
@@ -207,17 +212,30 @@ function NS:CreateBox(bgParent, borderParent, region, bgColor)
 	-- Sublevels sit above a panel's shadow (-8) and background (-7).
 	box.base = NS:CreateTexture(bgParent, "BACKGROUND", -6, NS.color.border)
 	box.bg = NS:CreateTexture(bgParent, "BACKGROUND", -5, bgColor or NS.color.tile)
-	box.bg:SetAllPoints(region)
 	box.border = NewBorder(borderParent, box.base, nil, true)
 	box:UpdatePixels()
 	NS:RegisterPixelClient(box)
 	return box
 end
 
+-- Inside, the box keeps the region's exact rect at any pixel size, so its
+-- edges line up with tiles laid out in UI units.
+function BoxMixin:SetInside(inside)
+	self.inside = inside
+	self:UpdatePixels()
+end
+
 function BoxMixin:SetThickness(px)
+	local out, inset = px, 0
+	if self.inside then
+		out, inset = 0, px
+	end
 	self.base:ClearAllPoints()
-	self.base:SetPoint("TOPLEFT", self.region, "TOPLEFT", -px, px)
-	self.base:SetPoint("BOTTOMRIGHT", self.region, "BOTTOMRIGHT", px, -px)
+	self.base:SetPoint("TOPLEFT", self.region, "TOPLEFT", -out, out)
+	self.base:SetPoint("BOTTOMRIGHT", self.region, "BOTTOMRIGHT", out, -out)
+	self.bg:ClearAllPoints()
+	self.bg:SetPoint("TOPLEFT", self.region, "TOPLEFT", inset, -inset)
+	self.bg:SetPoint("BOTTOMRIGHT", self.region, "BOTTOMRIGHT", -inset, inset)
 	self.border:SetThickness(px)
 end
 
@@ -233,7 +251,9 @@ end
 
 ---------------------------------------------------------------------------
 -- Tile: dark fill with a 1px border and a shadow, inset (x, y) inside a
--- frame. An optional `tile.icon` is laid out to fill the inside.
+-- frame. An optional `tile.icon` is laid out to fill the inside, and an
+-- optional `tile.anchor` region gives the rect instead of the frame (the
+-- tile still draws on the frame).
 ---------------------------------------------------------------------------
 
 local TileMixin = {}
@@ -253,13 +273,13 @@ function NS:CreateTile(frame, insetX, insetY, fillColor, noShadow)
 	return tile
 end
 
--- Call again after setting `tile.icon`.
+-- Call again after setting `tile.icon` or `tile.anchor`.
 function TileMixin:Layout()
 	local px = NS:Px(self.frame)
-	local frame, x, y = self.frame, self.insetX, self.insetY
+	local anchor, x, y = self.anchor or self.frame, self.insetX, self.insetY
 	self.rect:ClearAllPoints()
-	self.rect:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -y)
-	self.rect:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -x, y)
+	self.rect:SetPoint("TOPLEFT", anchor, "TOPLEFT", x, -y)
+	self.rect:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", -x, y)
 	self.fill:ClearAllPoints()
 	self.fill:SetPoint("TOPLEFT", self.rect, "TOPLEFT", px, -px)
 	self.fill:SetPoint("BOTTOMRIGHT", self.rect, "BOTTOMRIGHT", -px, px)
@@ -307,20 +327,74 @@ function NS:HideTextures(...)
 	end
 end
 
--- Flat button with a text glyph ("x", "+", "-"). Returns the glyph.
-function NS:SkinGlyphButton(button, size, text)
-	if not button then return end
+-- Hides a frame's own textures (only those on `layer`, if given), except
+-- the ones listed after it. Font strings and child frames are untouched.
+function NS:HideRegions(frame, layer, ...)
+	if not frame then return end
+	local keep = {}
+	for i = 1, select("#", ...) do
+		local region = select(i, ...)
+		if region then keep[region] = true end
+	end
+	for _, region in ipairs({ frame:GetRegions() }) do
+		if region:IsObjectType("Texture") and not keep[region]
+			and (not layer or region:GetDrawLayer() == layer) then
+			region:SetAlpha(0)
+		end
+	end
+end
+
+local CHECK_BOX = { 0.20, 0.20, 0.22, 1 }
+local CHECK_SIZE = 12
+local CHECK_INSET = 3 -- the selected mark inside the box
+
+-- Flat checkbox from a box texture and the mark Blizzard shows when
+-- checked: an accent square inside the box.
+function NS:StyleCheckbox(box, mark)
+	if not box then return end
+	box:SetColorTexture(unpack(CHECK_BOX))
+	box:SetSize(CHECK_SIZE, CHECK_SIZE)
+	if mark then
+		local c = NS.color.accent
+		mark:SetColorTexture(c[1], c[2], c[3], 1)
+		mark:ClearAllPoints()
+		mark:SetPoint("TOPLEFT", box, "TOPLEFT", CHECK_INSET, -CHECK_INSET)
+		mark:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -CHECK_INSET, CHECK_INSET)
+	end
+end
+
+local function FlattenButton(button)
 	NS:HideTextures(button:GetNormalTexture(), button:GetPushedTexture(), button:GetDisabledTexture())
 	NS:SetFlat(button:GetHighlightTexture(), NS.color.glyphHover, button)
-	local glyph = NS:CreateText(button, size, "CENTER", true)
-	glyph:SetPoint("CENTER", button, "CENTER", 0, 1)
-	if text then glyph:SetText(text) end
-	return glyph
+end
+
+-- Flat button with a "+" drawn in strokes (font glyphs sit off center).
+-- Returns the vertical stroke: hide it for a "-".
+function NS:SkinPlusButton(button)
+	if not button then return nil end
+	FlattenButton(button)
+	local _, vertical = NS:CreatePlus(button)
+	return vertical
+end
+
+-- Flat close button with an "x" drawn in strokes, as bold as the "+".
+function NS:SkinCloseButton(button)
+	if not button then return end
+	FlattenButton(button)
+	NS:CreateCross(button)
 end
 
 -- Restyles a (Portrait)FrameFlat / ButtonFrame window as a dark panel with
 -- a header strip. Returns the header.
 function NS:SkinPanelFrame(frame)
+	NS:CreateTile(frame, 0, 0, NS.color.panel)
+	return NS:SkinPanelChrome(frame)
+end
+
+-- NS:SkinPanelFrame without the panel, for windows that draw it elsewhere:
+-- hides the border art and adds the header strip with the title and close
+-- button. Returns the header.
+function NS:SkinPanelChrome(frame)
 	local P = NS.panelStyle
 	if frame.NineSlice then
 		frame.NineSlice:SetAlpha(0)
@@ -328,7 +402,6 @@ function NS:SkinPanelFrame(frame)
 	for _, key in ipairs({ "Bg", "TopTileStreaks" }) do
 		NS:Kill(frame[key])
 	end
-	NS:CreateTile(frame, 0, 0, NS.color.panel)
 
 	local header = CreateFrame("Frame", nil, frame)
 	header:SetPoint("TOPLEFT", frame, "TOPLEFT", P.margin, -P.margin)
@@ -351,7 +424,7 @@ function NS:SkinPanelFrame(frame)
 		close:SetSize(P.header, P.header)
 		close:ClearAllPoints()
 		close:SetPoint("RIGHT", header, "RIGHT", 0, 0)
-		NS:SkinGlyphButton(close, 13, "x")
+		NS:SkinCloseButton(close)
 	end
 	return header
 end
@@ -376,7 +449,16 @@ function NS:SkinPanelPortrait(frame, header, portrait)
 	return portrait
 end
 
-local PANEL_BUTTON_HOVER = { 1, 1, 1, 0.08 }
+-- MaximizeMinimizeButtonFrameTemplate as flat "+" and "-" buttons, header
+-- sized. It sits left of the close button.
+function NS:SkinMaximizeMinimize(frame)
+	if not frame then return end
+	local size = NS.panelStyle.header
+	frame:SetSize(size, size)
+	NS:SkinPlusButton(frame.MaximizeButton)
+	local minimize = NS:SkinPlusButton(frame.MinimizeButton)
+	if minimize then minimize:Hide() end
+end
 
 -- UIPanelButtonTemplate buttons. Blizzard swaps the slice textures on
 -- every click and enable change, so they're hidden by alpha. Returns the
@@ -385,7 +467,7 @@ function NS:SkinPanelButton(button)
 	if not button then return nil end
 	NS:HideTextures(button.Left, button.Middle, button.Right)
 	local tile = NS:CreateTile(button, 0, 0, NS.color.tile, true)
-	NS:SetFlat(button:GetHighlightTexture(), PANEL_BUTTON_HOVER, tile.fill)
+	NS:SetFlat(button:GetHighlightTexture(), NS.color.rowHover, tile.fill)
 	return tile
 end
 
@@ -433,6 +515,30 @@ function NS:CreateStroke(parent, width, height, rotation)
 	return line
 end
 
+-- A "+" from two strokes centered on `parent`; hide the vertical one for a
+-- "-". Font glyphs sit off center. Returns the horizontal and vertical
+-- strokes.
+function NS:CreatePlus(parent, size)
+	size = size or 8
+	local horizontal = NS:CreateStroke(parent, size, 1.5)
+	horizontal:SetPoint("CENTER", parent, "CENTER")
+	local vertical = NS:CreateStroke(parent, 1.5, size)
+	vertical:SetPoint("CENTER", parent, "CENTER")
+	return horizontal, vertical
+end
+
+-- An "x" from two strokes crossed at 45 degrees, centered on `parent`. The
+-- default length spans about as much as the "+". Returns the strokes.
+function NS:CreateCross(parent, size)
+	local strokes = {}
+	for _, degrees in ipairs({ 45, -45 }) do
+		local line = NS:CreateStroke(parent, size or 10, 1.5, math.rad(degrees))
+		line:SetPoint("CENTER", parent, "CENTER")
+		table.insert(strokes, line)
+	end
+	return strokes
+end
+
 function NS:SetStrokeBrightness(strokes, brightness)
 	for _, line in ipairs(strokes) do
 		line:SetVertexColor(brightness, brightness, brightness, 1)
@@ -448,12 +554,13 @@ local CHEVRONS = {
 	right = { { -45, 0, 1.8 }, { 45, 0, -1.8 } },
 }
 
--- Returns the strokes, centered on `parent`.
-function NS:CreateChevron(parent, direction)
+-- Returns the strokes, centered on `parent`, or on its `point` moved by
+-- (x, y).
+function NS:CreateChevron(parent, direction, point, x, y)
 	local strokes = {}
 	for _, spec in ipairs(CHEVRONS[direction]) do
 		local line = NS:CreateStroke(parent, 6, 1.5, math.rad(spec[1]))
-		line:SetPoint("CENTER", parent, "CENTER", spec[2], spec[3])
+		line:SetPoint("CENTER", parent, point or "CENTER", (x or 0) + spec[2], (y or 0) + spec[3])
 		table.insert(strokes, line)
 	end
 	return strokes
@@ -478,11 +585,7 @@ end
 -- redraws the arrow on every state change. Returns the box.
 function NS:SkinChevronDropdown(dropdown)
 	if not dropdown then return nil end
-	for _, region in ipairs({ dropdown:GetRegions() }) do
-		if region:GetObjectType() == "Texture" and region:GetDrawLayer() == "HIGHLIGHT" then
-			region:SetAlpha(0)
-		end
-	end
+	NS:HideRegions(dropdown, "HIGHLIGHT")
 	local box = NS:CreateControlBox(dropdown)
 	local strokes = NS:CreateChevron(dropdown, "down")
 	NS:HookButtonStates(dropdown, function(control)
@@ -494,9 +597,9 @@ function NS:SkinChevronDropdown(dropdown)
 	return box
 end
 
--- Previous/next page buttons as a box with a chevron.
+-- Previous/next page buttons as a box with a chevron. Returns the box.
 function NS:SkinArrowButton(button, direction)
-	if not button then return end
+	if not button then return nil end
 	NS:HideTextures(button:GetNormalTexture(), button:GetPushedTexture(),
 		button:GetDisabledTexture(), button:GetHighlightTexture())
 	local box = NS:CreateControlBox(button)
@@ -506,6 +609,70 @@ function NS:SkinArrowButton(button, direction)
 		NS:SetStrokeBrightness(strokes, v)
 		NS:SetControlBoxState(box, v)
 	end)
+	return box
+end
+
+local GEAR = "Interface\\WorldMap\\Gear_64Grey"
+
+-- Settings dropdowns with an `Icon` as a box with a grey gear. Blizzard
+-- re-anchors the icon on every press. Returns the box.
+function NS:SkinGearDropdown(dropdown)
+	if not dropdown or not dropdown.Icon then return nil end
+	NS:HideRegions(dropdown, "HIGHLIGHT")
+	local box = NS:CreateControlBox(dropdown)
+	local icon = dropdown.Icon
+	NS:HookButtonStates(dropdown, function(control)
+		icon:SetTexture(GEAR)
+		icon:SetTexCoord(0, 1, 0, 1)
+		icon:ClearAllPoints()
+		icon:SetPoint("CENTER", control, "CENTER", 0, 0)
+		icon:SetSize(14, 14)
+		icon:SetDesaturated(true)
+		local v = NS:ControlBrightness(control)
+		icon:SetVertexColor(v, v, v)
+		NS:SetControlBoxState(box, v)
+	end)
+	return box
+end
+
+---------------------------------------------------------------------------
+-- Scroll bars (MinimalScrollBar): a thin flat thumb on a faint rail, and
+-- chevron steppers. Blizzard swaps their atlases on every state change.
+---------------------------------------------------------------------------
+
+local SCROLL_WIDTH = 4
+
+local function SkinStepper(button, direction)
+	if not button then return end
+	local strokes = NS:CreateChevron(button, direction)
+	NS:HookButtonStates(button, function(control)
+		NS:HideTextures(control.Texture)
+		NS:SetStrokeBrightness(strokes, NS:ControlBrightness(control))
+	end)
+end
+
+function NS:SkinScrollBar(bar)
+	local track = bar and bar.Track
+	local thumb = track and track.Thumb
+	if not thumb then return end
+	NS:HideTextures(track.Begin, track.Middle, track.End)
+	local rail = NS:CreateTexture(track, "BACKGROUND", 0, NS.color.highlight)
+	rail:SetPoint("TOP", track, "TOP")
+	rail:SetPoint("BOTTOM", track, "BOTTOM")
+	rail:SetWidth(SCROLL_WIDTH)
+
+	local fill = NS:CreateTexture(thumb, "OVERLAY", 7)
+	fill:SetPoint("TOP", thumb, "TOP")
+	fill:SetPoint("BOTTOM", thumb, "BOTTOM")
+	fill:SetWidth(SCROLL_WIDTH)
+	NS:HookButtonStates(thumb, function(control)
+		NS:HideTextures(control.Begin, control.Middle, control.End)
+		local active = control.down or control:IsMouseOver()
+		NS:SetColor(fill, active and NS.color.dim or NS.color.borderHover)
+	end)
+
+	SkinStepper(bar.Back, "up")
+	SkinStepper(bar.Forward, "down")
 end
 
 ---------------------------------------------------------------------------

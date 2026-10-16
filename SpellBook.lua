@@ -44,15 +44,6 @@ local function CropPortrait()
 	end
 end
 
--- Expands to two pages or condenses to one; sits left of the close button.
-local function SkinMaximizeButton(frame)
-	if not frame then return end
-	local size = NS.panelStyle.header
-	frame:SetSize(size, size)
-	NS:SkinGlyphButton(frame.MaximizeButton, 15, "+")
-	NS:SkinGlyphButton(frame.MinimizeButton, 15, "-")
-end
-
 function M:SkinWindow(frame)
 	local header = NS:SkinPanelFrame(frame)
 	portrait = NS:SkinPanelPortrait(frame, header)
@@ -60,7 +51,8 @@ function M:SkinWindow(frame)
 		NS:Hook(frame, "UpdatePortrait", CropPortrait)
 		CropPortrait()
 	end
-	SkinMaximizeButton(frame.MaximizeMinimizeButton)
+	-- Expands to two pages or condenses to one.
+	NS:SkinMaximizeMinimize(frame.MaximizeMinimizeButton)
 end
 
 ---------------------------------------------------------------------------

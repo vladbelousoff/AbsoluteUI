@@ -27,7 +27,8 @@ exactly as before.
   bag bar can be hidden (keybinds keep working).
 - **Skins**: tooltips (quality and class colored borders, health bar),
   right-click and dropdown menus, quest tracker, the NPC quest and gossip
-  windows, loot window, bags (Blizzard's and [Bagnon](https://www.curseforge.com/wow/addons/bagnon)),
+  windows, the world map and its quest log (breadcrumb navigation, quest
+  headers as tiles, light quest text), loot window, bags (Blizzard's and [Bagnon](https://www.curseforge.com/wow/addons/bagnon)),
   the spellbook and talents window (square spell icons, talents with borders
   colored by state) and Blizzard's built-in damage meter.
 - **Media**: a choice of bar textures and fonts for every bar AbsoluteUI draws.

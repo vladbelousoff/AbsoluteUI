@@ -24,6 +24,7 @@ NS.color = {
 	highlight  = { 1, 1, 1, 0.05 },
 	divider    = { 1, 1, 1, 0.08 },          -- 1px rules on the panel
 	glyphHover = { 1, 1, 1, 0.12 },          -- flat +/-/x buttons on hover
+	rowHover   = { 1, 1, 1, 0.08 },          -- list rows and panel buttons on hover
 	loss       = { 1, 0.85, 0.80, 0.45 },    -- recent damage chunk
 	absorb     = { 0.80, 0.90, 1.00, 0.55 }, -- shields
 	overAbsorb = { 0.90, 0.96, 1.00, 0.95 }, -- shields beyond max health

@@ -1,15 +1,16 @@
 -- AbsoluteUI: quest dialog (QuestFrame) and NPC gossip window (GossipFrame).
 --
 -- Blizzard colors their text for parchment (dark brown), so on the dark
--- panel it is recolored after every update. The quest text frames are
--- shared with the world map's quest log, which keeps its parchment: there
--- they get Blizzard's colors back.
+-- panel it is recolored after every update. The quest text frames
+-- (QuestInfo) are shared with the quest log on the world map: each module
+-- registers the parents it darkens (NS:RegisterDarkQuestInfo), and the
+-- others get Blizzard's colors back.
 
 local _, NS = ...
 
 local M = NS:NewModule("Quests", { setting = "questFrames" })
 
-local ROW_HOVER = { 1, 1, 1, 0.08 }
+local ROW_HOVER = NS.color.rowHover
 
 local QUEST_PANELS = { "QuestFrameRewardPanel", "QuestFrameProgressPanel", "QuestFrameDetailPanel", "QuestFrameGreetingPanel" }
 local PANEL_ART = { "Bg", "MaterialTopLeft", "MaterialTopRight", "MaterialBotLeft", "MaterialBotRight", "SealMaterialBG" }
@@ -31,9 +32,17 @@ local INFO_TEXTS = {
 	"QuestInfoRewardText", "QuestInfoTimerText", "QuestInfoSpellObjectiveLearnLabel",
 }
 local REWARD_TEXTS = { "ItemChooseText", "ItemReceiveText", "PlayerTitleText", "QuestSessionBonusReward" }
+-- Texts Blizzard colors on every display, so only dark parents touch them.
+local DISPLAY_TEXTS = { "QuestInfoRequiredMoneyText", "QuestInfoQuestType" }
 
+-- Reward buttons besides RewardButtons; those with an icon and a name frame
+-- become cards.
+local REWARD_EXTRAS = { "HonorFrame", "SkillPointFrame", "ArtifactXPFrame", "WarModeBonusFrame", "XPFrame", "MoneyFrame" }
+local REWARD_POOLS = { "spellRewardPool", "reputationRewardPool" }
+
+-- Some keys hold frames on one rewards frame and font strings on the other.
 local function SetTextColor(fs, color)
-	if fs then fs:SetTextColor(color[1], color[2], color[3]) end
+	if fs and fs.SetTextColor then fs:SetTextColor(color[1], color[2], color[3]) end
 end
 
 ---------------------------------------------------------------------------
@@ -68,13 +77,19 @@ local function SkinCard(button)
 	NS:Kill(button.NameFrame)
 	icon:ClearAllPoints()
 	icon:SetPoint("TOPLEFT", button, "TOPLEFT", 1, -1)
+	-- Small buttons (the map's rewards) are as tall as their icon.
+	local size = button:GetHeight() - 2
+	if icon:GetHeight() > size then
+		icon:SetSize(size, size)
+	end
 	NS:CropIcon(icon)
 	card.icon = NS:CreateBox(button, button, icon, NS.color.panel)
 	return card
 end
 
 -- Quality on the icon border (Blizzard's own is hidden), the chosen
--- reward in the accent color.
+-- reward in the accent color. Rewards are only picked in the NPC window;
+-- the map's choice rewards would match a stale choice.
 local function SyncCard(button)
 	local card = SkinCard(button)
 	if not card then return end
@@ -86,14 +101,32 @@ local function SyncCard(button)
 		card.icon.border:SetColor(unpack(NS.color.border))
 	end
 	NS:HideTextures(quality)
-	local chosen = QuestInfoFrame and button.type == "choice" and QuestInfoFrame.itemChoice == button:GetID()
+	local chosen = QuestInfoFrame and button:GetParent() == QuestInfoRewardsFrame
+		and button.type == "choice" and QuestInfoFrame.itemChoice == button:GetID()
 	card.tile:SetBorderColor(unpack(chosen and NS.color.accent or NS.color.border))
 end
 
-local function SyncRewardCards()
-	local rewards = QuestInfoRewardsFrame
-	for _, button in ipairs(rewards and rewards.RewardButtons or {}) do
+local function IsCardButton(button)
+	return type(button) == "table" and button.Icon and button.NameFrame
+		and button.IsObjectType and button:IsObjectType("Button")
+end
+
+-- QuestInfoRewardsFrame or MapQuestInfoRewardsFrame.
+local function SyncRewardCards(rewards)
+	if not rewards then return end
+	for _, button in ipairs(rewards.RewardButtons or {}) do
 		SyncCard(button)
+	end
+	for _, key in ipairs(REWARD_EXTRAS) do
+		if IsCardButton(rewards[key]) then SyncCard(rewards[key]) end
+	end
+	for _, key in ipairs(REWARD_POOLS) do
+		local pool = rewards[key]
+		if pool and pool.EnumerateActive then
+			for button in pool:EnumerateActive() do
+				if IsCardButton(button) then SyncCard(button) end
+			end
+		end
 	end
 end
 
@@ -105,7 +138,80 @@ local function SyncProgressCards()
 end
 
 ---------------------------------------------------------------------------
--- Quest text
+-- Quest text on dark panels (QuestInfo, shared with WorldMap.lua)
+---------------------------------------------------------------------------
+
+local function ColorRewardTexts(rewards, text, title)
+	if not rewards then return end
+	SetTextColor(rewards.Header, title)
+	for _, key in ipairs(REWARD_TEXTS) do
+		SetTextColor(rewards[key], text)
+	end
+	SetTextColor(rewards.XPFrame and rewards.XPFrame.ReceiveText, text)
+end
+
+local function ColorQuestInfo(text, title)
+	for _, name in ipairs(INFO_TITLES) do
+		SetTextColor(_G[name], title)
+	end
+	for _, name in ipairs(INFO_TEXTS) do
+		SetTextColor(_G[name], text)
+	end
+	ColorRewardTexts(QuestInfoRewardsFrame, text, title)
+end
+
+-- Finished objectives end in " (Complete)" and are dimmed.
+local function ColorObjectives()
+	local list = QuestInfoObjectivesFrame and QuestInfoObjectivesFrame.Objectives
+	local suffix = COMPLETE and " (" .. COMPLETE .. ")"
+	for _, fs in ipairs(list or {}) do
+		local text = fs:GetText()
+		local done = suffix and type(text) == "string" and text:sub(-#suffix) == suffix
+		SetTextColor(fs, done and NS.color.dim or NS.color.text)
+	end
+end
+
+local darkParents = {} -- [QuestInfo parent frame] = true
+local recolored = false
+
+-- Blizzard only recolors when the material changes, so other parents would
+-- keep our colors otherwise.
+local function OnQuestInfoDisplay(_, parentFrame, _, material)
+	if darkParents[parentFrame] then
+		ColorQuestInfo(NS.color.text, NS.color.accent)
+		for _, name in ipairs(DISPLAY_TEXTS) do
+			SetTextColor(_G[name], NS.color.text)
+		end
+		ColorObjectives()
+		recolored = true
+		local rewards = QuestInfoFrame and QuestInfoFrame.rewardsFrame
+		if rewards and rewards:GetParent() == parentFrame then
+			ColorRewardTexts(rewards, NS.color.text, NS.color.accent)
+			SyncRewardCards(rewards)
+		end
+	elseif recolored and GetMaterialTextColors then
+		local useLight = QuestTextContrast and QuestTextContrast.UseLightText()
+		local text, title = GetMaterialTextColors(useLight and "Stone" or material or "Default")
+		if text and title then
+			ColorQuestInfo(text, title)
+			recolored = false
+		end
+	end
+end
+
+local hooked = false
+
+-- Quest text shown in `parentFrame` gets light colors and reward cards.
+function NS:RegisterDarkQuestInfo(parentFrame)
+	if not parentFrame then return end
+	darkParents[parentFrame] = true
+	if not hooked then
+		hooked = NS:Hook(nil, "QuestInfo_Display", OnQuestInfoDisplay)
+	end
+end
+
+---------------------------------------------------------------------------
+-- Quest dialog
 ---------------------------------------------------------------------------
 
 local frameTexts = {} -- [font string] = true
@@ -116,43 +222,6 @@ end
 
 local function OnFrameTitle(fs)
 	if frameTexts[fs] then SetTextColor(fs, NS.color.accent) end
-end
-
-local function ColorQuestInfo(text, title)
-	for _, name in ipairs(INFO_TITLES) do
-		SetTextColor(_G[name], title)
-	end
-	for _, name in ipairs(INFO_TEXTS) do
-		SetTextColor(_G[name], text)
-	end
-	local rewards = QuestInfoRewardsFrame
-	if rewards then
-		SetTextColor(rewards.Header, title)
-		for _, key in ipairs(REWARD_TEXTS) do
-			SetTextColor(rewards[key], text)
-		end
-		SetTextColor(rewards.XPFrame and rewards.XPFrame.ReceiveText, text)
-	end
-end
-
-local recolored = false
-
--- Blizzard only recolors when the material changes, so the quest log on
--- the map would keep our colors otherwise.
-local function OnQuestInfoDisplay(_, parentFrame, _, material)
-	local ours = parentFrame == QuestDetailScrollChildFrame or parentFrame == QuestRewardScrollChildFrame
-	if ours then
-		ColorQuestInfo(NS.color.text, NS.color.accent)
-		recolored = true
-		SyncRewardCards()
-	elseif recolored and GetMaterialTextColors then
-		local useLight = QuestTextContrast and QuestTextContrast.UseLightText()
-		local text, title = GetMaterialTextColors(useLight and "Stone" or material or "Default")
-		if text and title then
-			ColorQuestInfo(text, title)
-			recolored = false
-		end
-	end
 end
 
 -- Quest titles carry a black color code; fixed color ignores it.
@@ -200,8 +269,9 @@ function M:SkinQuestFrame()
 	NS:Hook(nil, "QuestFrame_SetTextColor", OnFrameText)
 	NS:Hook(nil, "QuestFrame_SetTitleTextColor", OnFrameTitle)
 	NS:Hook(nil, "QuestFrameProgressItems_Update", OnProgressItemsUpdate)
-	NS:Hook(nil, "QuestInfo_Display", OnQuestInfoDisplay)
-	NS:Hook(nil, "QuestInfoItem_OnClick", SyncRewardCards)
+	NS:RegisterDarkQuestInfo(QuestDetailScrollChildFrame)
+	NS:RegisterDarkQuestInfo(QuestRewardScrollChildFrame)
+	NS:Hook(nil, "QuestInfoItem_OnClick", function() SyncRewardCards(QuestInfoRewardsFrame) end)
 	if QuestFrameGreetingPanel then
 		QuestFrameGreetingPanel:HookScript("OnShow", OnGreetingShow)
 	end

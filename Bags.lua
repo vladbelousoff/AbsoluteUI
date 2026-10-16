@@ -182,7 +182,7 @@ local function LoadBagnonSkin(bg)
 	local close = window and window.CloseButton
 	if close then
 		close:SetSize(20, 20)
-		NS:SkinGlyphButton(close, 13, "x")
+		NS:SkinCloseButton(close)
 	end
 end
 

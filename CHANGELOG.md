@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0
+
+- Skin for the world map and the quest log beside it: flat panel, a
+  breadcrumb navigation bar with the current zone in gold, flat map buttons
+  (waypoint pin, floor picker, filter, quest log toggle), zone headers as
+  tiles, flat track checkboxes, thin scroll bars and a quest count tile.
+  Quest details get light text and reward cards with quality borders.
+  Toggle it under Skins.
+- The "+", "-" and "x" of window buttons and the quest tracker are drawn
+  instead of typed, so they sit centered and equally bold.
+- NPC quest window: honor, skill point and reputation rewards also get
+  reward cards.
+
 ## 1.1.1
 
 - Now also published on CurseForge. No changes in the addon itself.

@@ -158,7 +158,6 @@ end
 local CONTROL = 20
 local CONTROL_GAP = 4
 local HEADER_MARGIN = 6
-local GEAR = "Interface\\WorldMap\\Gear_64Grey"
 
 -- Blizzard's dropdowns redraw their art on every state change, so the
 -- apply functions below run after each one (NS:HookButtonStates).
@@ -180,23 +179,6 @@ local function SkinSessionDropdown(dropdown)
 	end)
 end
 
-local function SkinSettingsDropdown(dropdown)
-	if not dropdown or not dropdown.Icon then return end
-	local box = NS:CreateControlBox(dropdown)
-	local icon = dropdown.Icon
-	NS:HookButtonStates(dropdown, function(self)
-		icon:SetTexture(GEAR)
-		icon:SetTexCoord(0, 1, 0, 1)
-		icon:ClearAllPoints()
-		icon:SetPoint("CENTER", self, "CENTER", 0, 0)
-		icon:SetSize(14, 14)
-		icon:SetDesaturated(true)
-		local v = NS:ControlBrightness(self)
-		icon:SetVertexColor(v, v, v)
-		NS:SetControlBoxState(box, v)
-	end)
-end
-
 -- A minus, or a plus while collapsed.
 local function SkinCollapseButton(button, window)
 	if not button then return end
@@ -205,10 +187,7 @@ local function SkinCollapseButton(button, window)
 		texture:SetAlpha(0)
 	end
 	local box = NS:CreateControlBox(button)
-	local horizontal = NS:CreateStroke(button, 8, 1.5)
-	horizontal:SetPoint("CENTER")
-	local vertical = NS:CreateStroke(button, 1.5, 8)
-	vertical:SetPoint("CENTER")
+	local horizontal, vertical = NS:CreatePlus(button)
 	local strokes = { horizontal, vertical }
 	local function Apply()
 		vertical:SetShown((window.IsMinimized and window:IsMinimized()) and true or false)
@@ -296,7 +275,7 @@ local function SkinSourceWindow(window)
 			NS:Hook(window, "UpdateBackground", sync)
 		end
 	end
-	NS:SkinGlyphButton(window.CloseButton, 15, "x")
+	NS:SkinCloseButton(window.CloseButton)
 	SkinResizeButton(window.ResizeButton)
 	WatchScrollBox(window.ScrollBox, window)
 	NS:Hook(window, "OnBarHeightChanged", ApplyRowHeight)
@@ -329,7 +308,7 @@ local function SkinSessionWindow(window)
 
 	NS:SkinChevronDropdown(window.DamageMeterTypeDropdown)
 	SkinSessionDropdown(window.SessionDropdown)
-	SkinSettingsDropdown(window.SettingsDropdown)
+	NS:SkinGearDropdown(window.SettingsDropdown)
 	SkinCollapseButton(window.MinimizeButton, window)
 	if rect then
 		LayoutHeader(window, rect)

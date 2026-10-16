@@ -66,8 +66,10 @@ read_globals = {
 	"GossipFrame", "QuestFrame", "QuestFrameGreetingPanel", "QuestFramePortrait",
 	"QuestGreetingFrameHorizontalBreak", "QuestProgressRequiredMoneyText",
 	"QuestDetailScrollChildFrame", "QuestRewardScrollChildFrame",
-	"QuestInfoFrame", "QuestInfoItemHighlight", "QuestInfoRewardsFrame",
-	"GetMaterialTextColors", "QuestTextContrast",
+	"QuestInfoFrame", "QuestInfoItemHighlight", "QuestInfoRewardsFrame", "QuestInfoObjectivesFrame",
+	"GetMaterialTextColors", "QuestTextContrast", "COMPLETE",
+	"WorldMapFrame", "WorldMapFloorNavigationFrameMixin", "QuestMapFrame", "QuestScrollFrame",
+	"QuestLogCount", "QuestLogQuestCount", "NavBar_CheckLength",
 	"PetFrame", "PetFrameTexture", "PetPortrait", "PetFrameFlash", "PetAttackModeTexture",
 	"PetHitIndicator", "PetFrameHealthBar", "PetFrameManaBar", "PetName",
 }
