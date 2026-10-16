@@ -84,6 +84,22 @@ function NS:CreateStatusBar(parent)
 	return bar
 end
 
+-- A one pixel line; the caller anchors its length. Vertical lines keep
+-- their width at one pixel, horizontal ones their height.
+function NS:CreateLine(parent, layer, color, vertical)
+	local line = NS:CreateTexture(parent, layer, 0, color)
+	local function UpdatePixels()
+		if vertical then
+			line:SetWidth(NS:Px(parent))
+		else
+			line:SetHeight(NS:Px(parent))
+		end
+	end
+	UpdatePixels()
+	NS:RegisterPixelClient(UpdatePixels)
+	return line
+end
+
 ---------------------------------------------------------------------------
 -- Border: four edge textures drawn inside `rectRegion`'s rect.
 ---------------------------------------------------------------------------
@@ -338,6 +354,227 @@ function NS:SkinPanelFrame(frame)
 		NS:SkinGlyphButton(close, 13, "x")
 	end
 	return header
+end
+
+-- The portrait of a panel from NS:SkinPanelFrame (or `portrait`, for
+-- frames with their own) becomes a small square icon at the header's left
+-- end. Returns the portrait.
+function NS:SkinPanelPortrait(frame, header, portrait)
+	local container = frame.PortraitContainer
+	portrait = portrait or (container and container.portrait)
+	if not portrait then return nil end
+	local size = NS.panelStyle.header - 4
+	if container and container.CircleMask and portrait == container.portrait then
+		portrait:RemoveMaskTexture(container.CircleMask)
+	end
+	NS:Adopt(portrait, header)
+	portrait:SetDrawLayer("ARTWORK")
+	portrait:ClearAllPoints()
+	portrait:SetPoint("LEFT", header, "LEFT", 2, 0)
+	portrait:SetSize(size, size)
+	NS:CropIcon(portrait)
+	return portrait
+end
+
+local PANEL_BUTTON_HOVER = { 1, 1, 1, 0.08 }
+
+-- UIPanelButtonTemplate buttons. Blizzard swaps the slice textures on
+-- every click and enable change, so they're hidden by alpha. Returns the
+-- tile.
+function NS:SkinPanelButton(button)
+	if not button then return nil end
+	NS:HideTextures(button.Left, button.Middle, button.Right)
+	local tile = NS:CreateTile(button, 0, 0, NS.color.tile, true)
+	NS:SetFlat(button:GetHighlightTexture(), PANEL_BUTTON_HOVER, tile.fill)
+	return tile
+end
+
+function NS:SkinSearchBox(box)
+	if not box then return end
+	NS:HideTextures(box.Left, box.Middle, box.Right)
+	NS:CreateTile(box, -2, 0, NS.color.tile, true)
+end
+
+-- The suggestion list under a spell search box (SpellSearchPreviewContainerTemplate).
+function NS:SkinSearchPreview(container)
+	if not container then return end
+	NS:HideTextures(container.Background, container.BorderAnchor, container.BotRightCorner,
+		container.BottomBorder, container.LeftBorder, container.RightBorder)
+	NS:CreateTile(container, 0, 0, NS.color.panel)
+end
+
+---------------------------------------------------------------------------
+-- Control buttons: small flat tiles with stroke glyphs (chevrons, plus,
+-- minus), dimmed while idle and lit on hover or while their menu is open.
+---------------------------------------------------------------------------
+
+-- Glyph brightness for a control's current state.
+function NS:ControlBrightness(button)
+	if button.IsEnabled and not button:IsEnabled() then return 0.35 end
+	local active = (button.IsOver and button:IsOver())
+		or (button.IsMenuOpen and button:IsMenuOpen())
+		or button:IsMouseOver()
+	return active and 1 or 0.72
+end
+
+function NS:CreateControlBox(button)
+	return NS:CreateBox(button, button, button, NS.color.panel)
+end
+
+-- The box border lights up at full brightness.
+function NS:SetControlBoxState(box, brightness)
+	box.border:SetColor(unpack(brightness == 1 and NS.color.borderHover or NS.color.border))
+end
+
+function NS:CreateStroke(parent, width, height, rotation)
+	local line = NS:CreateTexture(parent, "OVERLAY", 7, NS.color.text)
+	line:SetSize(width, height)
+	if rotation then line:SetRotation(rotation) end
+	return line
+end
+
+function NS:SetStrokeBrightness(strokes, brightness)
+	for _, line in ipairs(strokes) do
+		line:SetVertexColor(brightness, brightness, brightness, 1)
+	end
+end
+
+-- Two strokes per direction: { rotation, x, y } in degrees and units from
+-- the center.
+local CHEVRONS = {
+	down  = { { -45, -1.8, 0 }, { 45, 1.8, 0 } },
+	up    = { { 45, -1.8, 0 }, { -45, 1.8, 0 } },
+	left  = { { 45, 0, 1.8 }, { -45, 0, -1.8 } },
+	right = { { -45, 0, 1.8 }, { 45, 0, -1.8 } },
+}
+
+-- Returns the strokes, centered on `parent`.
+function NS:CreateChevron(parent, direction)
+	local strokes = {}
+	for _, spec in ipairs(CHEVRONS[direction]) do
+		local line = NS:CreateStroke(parent, 6, 1.5, math.rad(spec[1]))
+		line:SetPoint("CENTER", parent, "CENTER", spec[2], spec[3])
+		table.insert(strokes, line)
+	end
+	return strokes
+end
+
+-- Runs apply(button) now and on every state change. Hover changes don't
+-- always go through OnButtonStateChanged, so the scripts are hooked too.
+function NS:HookButtonStates(button, apply)
+	if button.OnButtonStateChanged then
+		NS:Hook(button, "OnButtonStateChanged", apply)
+	end
+	for _, script in ipairs({ "OnEnter", "OnLeave", "OnEnable", "OnDisable" }) do
+		if button:HasScript(script) then
+			button:HookScript(script, apply)
+		end
+	end
+	apply(button)
+end
+
+-- Arrow dropdown buttons (WowStyle1ArrowDropdownTemplate,
+-- UIPanelArrowDropdownButtonTemplate) as a box with a chevron. Blizzard
+-- redraws the arrow on every state change. Returns the box.
+function NS:SkinChevronDropdown(dropdown)
+	if not dropdown then return nil end
+	for _, region in ipairs({ dropdown:GetRegions() }) do
+		if region:GetObjectType() == "Texture" and region:GetDrawLayer() == "HIGHLIGHT" then
+			region:SetAlpha(0)
+		end
+	end
+	local box = NS:CreateControlBox(dropdown)
+	local strokes = NS:CreateChevron(dropdown, "down")
+	NS:HookButtonStates(dropdown, function(control)
+		NS:HideTextures(control.Arrow, control.Icon)
+		local v = NS:ControlBrightness(control)
+		NS:SetStrokeBrightness(strokes, v)
+		NS:SetControlBoxState(box, v)
+	end)
+	return box
+end
+
+-- Previous/next page buttons as a box with a chevron.
+function NS:SkinArrowButton(button, direction)
+	if not button then return end
+	NS:HideTextures(button:GetNormalTexture(), button:GetPushedTexture(),
+		button:GetDisabledTexture(), button:GetHighlightTexture())
+	local box = NS:CreateControlBox(button)
+	local strokes = NS:CreateChevron(button, direction)
+	NS:HookButtonStates(button, function(control)
+		local v = NS:ControlBrightness(control)
+		NS:SetStrokeBrightness(strokes, v)
+		NS:SetControlBoxState(box, v)
+	end)
+end
+
+---------------------------------------------------------------------------
+-- Tab systems (TabSystemTemplate): every tab a tile, the selected one with
+-- an accent border. Tabs are pooled and set up again whenever Blizzard
+-- rebuilds the tab list.
+--
+-- style = { insetX, insetY, iconWidth }  -- tile inset; width of icon tabs
+---------------------------------------------------------------------------
+
+local TAB_HOVER = { 1, 1, 1, 0.12 }
+local TAB_ART = {
+	"Left", "Middle", "Right", "LeftActive", "MiddleActive", "RightActive",
+	"LeftHighlight", "MiddleHighlight", "RightHighlight",
+	"SquareBackground", "SquareBackgroundActive", "SquareBackgroundActiveGlow",
+}
+
+local tabTiles = {}
+
+-- Blizzard re-anchors the icon and the text on every selection change.
+local function ApplyTabSelected(tab, isSelected)
+	local tile = tabTiles[tab]
+	if not tile then return end
+	if tile.icon then
+		tile:Layout()
+	elseif tab.Text then
+		tab.Text:SetPoint("CENTER", tile.fill, "CENTER", 0, 0)
+	end
+	tile:SetBorderColor(unpack(isSelected and NS.color.accent or NS.color.border))
+end
+
+local function SkinTab(tab, style)
+	local tile = tabTiles[tab]
+	if not tile then
+		tile = NS:CreateTile(tab, style.insetX, style.insetY, NS.color.tile)
+		tabTiles[tab] = tile
+		for _, key in ipairs(TAB_ART) do
+			NS:HideTextures(tab[key])
+		end
+		if tab.Icon and tab.IconMask then
+			tab.Icon:RemoveMaskTexture(tab.IconMask)
+		end
+		-- The selected tab is disabled, so only the others light up.
+		local hover = NS:CreateTexture(tab, "HIGHLIGHT", 0, TAB_HOVER)
+		hover:SetAllPoints(tile.fill)
+		NS:Hook(tab, "SetTabSelected", ApplyTabSelected)
+	end
+	-- Init sizes the tab and decides between icon and text.
+	if tab.tabIcon and tab.Icon then
+		tile.icon = tab.Icon
+		NS:CropIcon(tab.Icon)
+		if style.iconWidth then
+			tab:SetWidth(style.iconWidth)
+		end
+	else
+		tile.icon = nil
+	end
+	ApplyTabSelected(tab, tab.isSelected)
+end
+
+function NS:SkinTabSystem(tabSystem, style)
+	if not tabSystem or not tabSystem.tabs then return end
+	for _, tab in ipairs(tabSystem.tabs) do
+		SkinTab(tab, style)
+	end
+	NS:Hook(tabSystem, "AddTab", function(system)
+		local tab = system.tabs[#system.tabs]
+		if tab then SkinTab(tab, style) end
+	end)
 end
 
 local function HideDividers(bar)

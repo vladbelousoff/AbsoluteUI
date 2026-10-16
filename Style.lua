@@ -22,6 +22,7 @@ NS.color = {
 	dim        = { 0.62, 0.65, 0.70 },
 	accent     = { 0.96, 0.77, 0.30 },       -- gold: checked, alerts, elite
 	highlight  = { 1, 1, 1, 0.05 },
+	divider    = { 1, 1, 1, 0.08 },          -- 1px rules on the panel
 	glyphHover = { 1, 1, 1, 0.12 },          -- flat +/-/x buttons on hover
 	loss       = { 1, 0.85, 0.80, 0.45 },    -- recent damage chunk
 	absorb     = { 0.80, 0.90, 1.00, 0.55 }, -- shields
@@ -46,6 +47,13 @@ NS.powerColor = {
 	ENERGY      = { 0.95, 0.82, 0.30 },
 	FOCUS       = { 0.92, 0.56, 0.26 },
 	RUNIC_POWER = { 0.00, 0.78, 0.96 },
+}
+
+-- Swing timer fills, by hand.
+NS.swingColor = {
+	mainHand = { 0.95, 0.76, 0.34 },
+	offHand  = { 0.92, 0.56, 0.26 },
+	ranged   = { 0.47, 0.78, 0.40 },
 }
 
 NS.castColor = {
@@ -92,6 +100,15 @@ NS.layouts = {
 		header   = { 40, -3, 97, -12 },
 		health   = { 40, -14, 97, -26 },
 		power    = { 40, -27, 97, -39 },
+		nameSize = 10,
+	},
+	-- Pet: the target of target's card, centered in PetFrame (120x49).
+	pet = {
+		panel    = { 4, -4, 116, -46 },
+		portrait = { 7, -7, 43, -43 },
+		header   = { 44, -7, 113, -16 },
+		health   = { 44, -18, 113, -30 },
+		power    = { 44, -31, 113, -43 },
 		nameSize = 10,
 	},
 }

@@ -61,4 +61,13 @@ read_globals = {
 	"ObjectiveTrackerFrame", "ObjectiveTrackerManager", "PlayerCastingBarFrame",
 	"PlayerFrame", "PlayerFrame_GetManaBar", "PlayerLevelText", "PlayerName",
 	"FocusFrame", "SettingsPanel", "TargetFrame",
+	"PlayerSpellsFrame", "TalentButtonUtil", "TalentFrameBaseMixin",
+	"MenuStyle1Mixin", "MenuVariants",
+	"GossipFrame", "QuestFrame", "QuestFrameGreetingPanel", "QuestFramePortrait",
+	"QuestGreetingFrameHorizontalBreak", "QuestProgressRequiredMoneyText",
+	"QuestDetailScrollChildFrame", "QuestRewardScrollChildFrame",
+	"QuestInfoFrame", "QuestInfoItemHighlight", "QuestInfoRewardsFrame",
+	"GetMaterialTextColors", "QuestTextContrast",
+	"PetFrame", "PetFrameTexture", "PetPortrait", "PetFrameFlash", "PetAttackModeTexture",
+	"PetHitIndicator", "PetFrameHealthBar", "PetFrameManaBar", "PetName",
 }

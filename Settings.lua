@@ -65,6 +65,10 @@ NS.settingsSchema = {
 	{ key = "castLatency", kind = "toggle", default = true, apply = "live", label = "Show latency",
 		tooltip = "Shade the end of your castbar by your latency. Once the cast reaches the shaded part, "
 			.. "you can already queue your next spell." },
+	{ section = "Swing Timer" },
+	{ key = "swingTimer", kind = "toggle", default = true, apply = "reload", label = "Restyle swing timers",
+		tooltip = "Give the main hand, off hand and ranged swing timers the castbar look. Edit Mode keeps "
+			.. "placing them." },
 
 	{ page = "Action Bars" },
 	{ section = "Style" },
@@ -82,6 +86,8 @@ NS.settingsSchema = {
 	{ section = "Blizzard Windows" },
 	{ key = "tooltips", kind = "toggle", default = true, apply = "reload", label = "Tooltips",
 		tooltip = "Tooltips with borders colored by item quality or unit class and reaction." },
+	{ key = "menus", kind = "toggle", default = true, apply = "reload", label = "Menus",
+		tooltip = "Right-click and dropdown menus: a flat panel, flat checkboxes and a subtle row highlight." },
 	{ key = "questTracker", kind = "toggle", default = true, apply = "reload", label = "Quest tracker",
 		tooltip = "The objective tracker. Its background follows Edit Mode's opacity setting." },
 	{ key = "lootFrame", kind = "toggle", default = true, apply = "reload", label = "Loot window",
@@ -89,6 +95,12 @@ NS.settingsSchema = {
 	{ key = "bags", kind = "toggle", default = true, apply = "reload", label = "Bags",
 		tooltip = "Blizzard's bag windows, or Bagnon's when you use it (unless you picked another skin "
 			.. "in Bagnon's options)." },
+	{ key = "questFrames", kind = "toggle", default = true, apply = "reload", label = "Quest and gossip windows",
+		tooltip = "The NPC quest window (greeting, details, progress, rewards) and the gossip window, with "
+			.. "light text and reward cards in quality colors. The quest log on the map keeps its look." },
+	{ key = "spellBook", kind = "toggle", default = true, apply = "reload", label = "Spellbook and talents",
+		tooltip = "The spellbook and talents window: square spell icons, flat category and spec tabs, "
+			.. "and talents with borders colored by state." },
 
 	{ page = "Damage Meter" },
 	{ key = "damageMeter", kind = "toggle", default = true, apply = "reload", label = "Restyle damage meter",

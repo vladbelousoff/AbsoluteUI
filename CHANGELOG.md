@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0
+
+- Skin for the spellbook and talents window: flat panel, square spell icons
+  on hover cards, icon tiles for the spell categories, and talents as square
+  tiles with borders colored by state (green while points can go in, gold
+  when maxed). Toggle it under Skins.
+- Skin for right-click and dropdown menus: flat panel, subtle row highlight,
+  flat checkboxes and radio buttons.
+- Skin for the NPC quest window (greeting, details, progress, rewards) and
+  the gossip window: light text on the dark panel, reward cards with
+  quality borders and the chosen reward in gold.
+- Pet frame card, like the target of target's; its border turns red while
+  the pet attacks.
+- Swing timers (main hand, off hand, ranged) get the castbar look.
+
 ## 1.0.0
 
 First public release.

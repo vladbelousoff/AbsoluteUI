@@ -161,92 +161,39 @@ local HEADER_MARGIN = 6
 local GEAR = "Interface\\WorldMap\\Gear_64Grey"
 
 -- Blizzard's dropdowns redraw their art on every state change, so the
--- apply functions below run after each one.
-local function Brightness(button)
-	if button.IsEnabled and not button:IsEnabled() then return 0.35 end
-	local active = (button.IsOver and button:IsOver())
-		or (button.IsMenuOpen and button:IsMenuOpen())
-		or button:IsMouseOver()
-	return active and 1 or 0.72
-end
-
-local function ControlTile(button)
-	return NS:CreateBox(button, button, button, NS.color.panel)
-end
-
-local function SetTileState(box, v)
-	box.border:SetColor(unpack(v == 1 and NS.color.borderHover or NS.color.border))
-end
-
-local function Stroke(parent, width, height, rotation)
-	local line = NS:CreateTexture(parent, "OVERLAY", 7, NS.color.text)
-	line:SetSize(width, height)
-	if rotation then line:SetRotation(rotation) end
-	return line
-end
-
-local function SetStrokes(strokes, v)
-	for _, line in ipairs(strokes) do
-		line:SetVertexColor(v, v, v, 1)
-	end
-end
-
--- Hover changes don't always go through OnButtonStateChanged; cover both.
-local function HookStates(button, apply)
-	NS:Hook(button, "OnButtonStateChanged", apply)
-	button:HookScript("OnEnter", apply)
-	button:HookScript("OnLeave", apply)
-	apply(button)
-end
-
--- A chevron of two strokes.
-local function SkinTypeDropdown(dropdown)
-	if not dropdown then return end
-	local box = ControlTile(dropdown)
-	local left = Stroke(dropdown, 6, 1.5, math.rad(-45))
-	left:SetPoint("CENTER", dropdown, "CENTER", -1.8, 0)
-	local right = Stroke(dropdown, 6, 1.5, math.rad(45))
-	right:SetPoint("CENTER", dropdown, "CENTER", 1.8, 0)
-	local strokes = { left, right }
-	HookStates(dropdown, function(self)
-		if self.Arrow then self.Arrow:SetAlpha(0) end
-		local v = Brightness(self)
-		SetStrokes(strokes, v)
-		SetTileState(box, v)
-	end)
-end
+-- apply functions below run after each one (NS:HookButtonStates).
 
 local function SkinSessionDropdown(dropdown)
 	if not dropdown then return end
 	if dropdown.Background then dropdown.Background:SetAlpha(0) end
-	local box = ControlTile(dropdown)
+	local box = NS:CreateControlBox(dropdown)
 	for _, fs in pairs({ dropdown.Text, dropdown.SessionName }) do
 		NS:StyleFont(fs, 11, "CENTER")
 	end
-	HookStates(dropdown, function(self)
+	NS:HookButtonStates(dropdown, function(self)
 		if self.Arrow then self.Arrow:SetAlpha(0) end
-		local v = Brightness(self)
+		local v = NS:ControlBrightness(self)
 		for _, fs in pairs({ self.Text, self.SessionName }) do
 			fs:SetTextColor(v, v, v)
 		end
-		SetTileState(box, v)
+		NS:SetControlBoxState(box, v)
 	end)
 end
 
 local function SkinSettingsDropdown(dropdown)
 	if not dropdown or not dropdown.Icon then return end
-	local box = ControlTile(dropdown)
+	local box = NS:CreateControlBox(dropdown)
 	local icon = dropdown.Icon
-	HookStates(dropdown, function(self)
+	NS:HookButtonStates(dropdown, function(self)
 		icon:SetTexture(GEAR)
 		icon:SetTexCoord(0, 1, 0, 1)
 		icon:ClearAllPoints()
 		icon:SetPoint("CENTER", self, "CENTER", 0, 0)
 		icon:SetSize(14, 14)
 		icon:SetDesaturated(true)
-		local v = Brightness(self)
+		local v = NS:ControlBrightness(self)
 		icon:SetVertexColor(v, v, v)
-		SetTileState(box, v)
+		NS:SetControlBoxState(box, v)
 	end)
 end
 
@@ -257,17 +204,17 @@ local function SkinCollapseButton(button, window)
 		button:GetHighlightTexture(), button:GetDisabledTexture() }) do
 		texture:SetAlpha(0)
 	end
-	local box = ControlTile(button)
-	local horizontal = Stroke(button, 8, 1.5)
+	local box = NS:CreateControlBox(button)
+	local horizontal = NS:CreateStroke(button, 8, 1.5)
 	horizontal:SetPoint("CENTER")
-	local vertical = Stroke(button, 1.5, 8)
+	local vertical = NS:CreateStroke(button, 1.5, 8)
 	vertical:SetPoint("CENTER")
 	local strokes = { horizontal, vertical }
 	local function Apply()
 		vertical:SetShown((window.IsMinimized and window:IsMinimized()) and true or false)
 		local v = button:IsMouseOver() and 1 or 0.72
-		SetStrokes(strokes, v)
-		SetTileState(box, v)
+		NS:SetStrokeBrightness(strokes, v)
+		NS:SetControlBoxState(box, v)
 	end
 	button:HookScript("OnEnter", Apply)
 	button:HookScript("OnLeave", Apply)
@@ -380,7 +327,7 @@ local function SkinSessionWindow(window)
 		NS:StyleFont(fs, 12, fs:GetJustifyH())
 	end
 
-	SkinTypeDropdown(window.DamageMeterTypeDropdown)
+	NS:SkinChevronDropdown(window.DamageMeterTypeDropdown)
 	SkinSessionDropdown(window.SessionDropdown)
 	SkinSettingsDropdown(window.SettingsDropdown)
 	SkinCollapseButton(window.MinimizeButton, window)

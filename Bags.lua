@@ -89,19 +89,8 @@ end
 -- The bag icon becomes a small square in the header, still opening the bag
 -- menu.
 local function SkinPortrait(frame, header)
-	local container = frame.PortraitContainer
-	local portrait = container and container.portrait
+	local portrait = NS:SkinPanelPortrait(frame, header)
 	if not portrait then return end
-	local size = NS.panelStyle.header - 4
-	if container.CircleMask then
-		portrait:RemoveMaskTexture(container.CircleMask)
-	end
-	NS:Adopt(portrait, header)
-	portrait:SetDrawLayer("ARTWORK")
-	portrait:ClearAllPoints()
-	portrait:SetPoint("LEFT", header, "LEFT", 2, 0)
-	portrait:SetSize(size, size)
-	NS:CropIcon(portrait)
 
 	local button = frame.PortraitButton
 	if button then
@@ -138,12 +127,6 @@ local function SkinBagFrame(frame)
 	SyncBlizzardItems(frame)
 end
 
-local function SkinSearchBox(box)
-	if not box then return end
-	NS:HideTextures(box.Left, box.Middle, box.Right)
-	NS:CreateTile(box, -2, 0, NS.color.tile, true)
-end
-
 local function BlizzardFrames()
 	local list = {}
 	local holder = ContainerFrameContainer and ContainerFrameContainer.ContainerFrames
@@ -158,7 +141,7 @@ function M:InitBlizzard()
 	for _, frame in ipairs(BlizzardFrames()) do
 		SkinBagFrame(frame)
 	end
-	SkinSearchBox(BagItemSearchBox)
+	NS:SkinSearchBox(BagItemSearchBox)
 	-- Blizzard shrinks the windows when many bags are open; keep 1px lines.
 	NS:Hook(nil, "UpdateContainerFrameAnchors", function() NS:UpdatePixels() end)
 end

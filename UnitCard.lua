@@ -391,6 +391,13 @@ function Card:UpdatePower()
 	end
 end
 
+-- A border color that wins over the hover state; nil clears it.
+function Card:SetBorderAlert(color)
+	self.borderAlert = color
+	self:UpdateBorder()
+end
+
 function Card:UpdateBorder()
-	self.panelBorder:SetColor(unpack(self.hovered and NS.color.borderHover or NS.color.border))
+	local color = self.borderAlert or (self.hovered and NS.color.borderHover) or NS.color.border
+	self.panelBorder:SetColor(color[1], color[2], color[3], color[4])
 end

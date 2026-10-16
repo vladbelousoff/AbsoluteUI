@@ -16,17 +16,20 @@ exactly as before.
   draining recent-damage indicator and a low health warning. Elites, rares and bosses get a colored
   portrait accent.
 - **Target of target**: a compact card tucked under the target and focus frames.
+- **Pet frame**: the same compact card, with a red border while the pet attacks.
 - **Auras**: target and focus buffs and debuffs with debuff type borders,
   stealable highlights, larger icons for your own auras and short countdowns.
 - **Castbars**: flat bars colored by cast type, an armored border for
   uninterruptible casts and a latency marker on your own castbar. Your castbar
-  can optionally sit above the player frame.
+  can optionally sit above the player frame. Swing timers get the same look.
 - **Action bars**: square icons, flat highlight states and readable outlined
   text for action buttons, the bag bar and the micro menu. The micro menu and
   bag bar can be hidden (keybinds keep working).
-- **Skins**: tooltips (quality and class colored borders, health bar), quest
-  tracker, loot window, bags (Blizzard's and [Bagnon](https://www.curseforge.com/wow/addons/bagnon))
-  and Blizzard's built-in damage meter.
+- **Skins**: tooltips (quality and class colored borders, health bar),
+  right-click and dropdown menus, quest tracker, the NPC quest and gossip
+  windows, loot window, bags (Blizzard's and [Bagnon](https://www.curseforge.com/wow/addons/bagnon)),
+  the spellbook and talents window (square spell icons, talents with borders
+  colored by state) and Blizzard's built-in damage meter.
 - **Media**: a choice of bar textures and fonts for every bar AbsoluteUI draws.
 
 ## Installation

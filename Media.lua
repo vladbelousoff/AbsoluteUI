@@ -186,6 +186,13 @@ function NS:StyleFont(fs, size, justify, outline, faceKey)
 	fs:SetTextColor(NS.color.text[1], NS.color.text[2], NS.color.text[3])
 end
 
+-- NS:StyleFont for texts Blizzard colors by state: the color stays.
+function NS:RestyleFont(fs, size, justify, outline)
+	local r, g, b, a = fs:GetTextColor()
+	NS:StyleFont(fs, size, justify, outline)
+	fs:SetTextColor(r, g, b, a)
+end
+
 -- Texts that follow the "Bar text font" setting.
 local barTexts = setmetatable({}, { __mode = "k" })
 
