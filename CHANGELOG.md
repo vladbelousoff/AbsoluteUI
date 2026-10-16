@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Now also published on CurseForge. No changes in the addon itself.
+
 ## 1.1.0
 
 - Skin for the spellbook and talents window: flat panel, square spell icons

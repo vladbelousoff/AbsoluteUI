@@ -2,9 +2,10 @@
 ## Title: AbsoluteUI
 ## Notes: Clean, modern restyle of Blizzard's UI: player, target, focus and pet frames with 3D portraits, auras, castbars, swing timers, action bars, tooltips, menus, loot, bags, spellbook, talents, quest windows, quest tracker and damage meter.
 ## Author: n08rainer
-## Version: 1.1.0
+## Version: 1.1.1
 ## Category: Unit Frames
 ## X-License: MIT
+## X-Curse-Project-ID: 1739217
 ## SavedVariables: AbsoluteUIDB
 ## IconTexture: Interface\AddOns\AbsoluteUI\Media\Logo
 ## AddonCompartmentFunc: AbsoluteUI_OnAddonCompartmentClick
