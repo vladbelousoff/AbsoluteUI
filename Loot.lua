@@ -5,7 +5,7 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("Loot", { setting = "lootFrame" })
+local M = NS:NewModule("Loot", { setting = "lootFrame", flavor = "modern" })
 
 local MARGIN = NS.panelStyle.margin
 local HEADER_HEIGHT = NS.panelStyle.header

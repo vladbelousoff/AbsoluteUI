@@ -391,6 +391,26 @@ function NS:SkinPanelFrame(frame)
 	return NS:SkinPanelChrome(frame)
 end
 
+-- Classic windows draw their border from pieces of their own (and a
+-- ButtonFrameTemplate adds a bottom strip, named after the window).
+local CLASSIC_BORDER = {
+	"TitleBg", "PortraitFrame", "TopRightCorner", "TopLeftCorner", "TopBorder",
+	"BotLeftCorner", "BotRightCorner", "BottomBorder", "LeftBorder", "RightBorder",
+}
+local CLASSIC_BUTTON_BORDER = { "BtnCornerLeft", "BtnCornerRight", "ButtonBottomBorder" }
+
+local function HideClassicBorder(frame)
+	for _, key in ipairs(CLASSIC_BORDER) do
+		NS:Kill(frame[key])
+	end
+	local name = frame:GetName()
+	if name then
+		for _, key in ipairs(CLASSIC_BUTTON_BORDER) do
+			NS:Kill(_G[name .. key])
+		end
+	end
+end
+
 -- NS:SkinPanelFrame without the panel, for windows that draw it elsewhere:
 -- hides the border art and adds the header strip with the title and close
 -- button. Returns the header.
@@ -401,6 +421,9 @@ function NS:SkinPanelChrome(frame)
 	end
 	for _, key in ipairs({ "Bg", "TopTileStreaks" }) do
 		NS:Kill(frame[key])
+	end
+	if NS.isClassic then
+		HideClassicBorder(frame)
 	end
 
 	local header = CreateFrame("Frame", nil, frame)
@@ -429,6 +452,42 @@ function NS:SkinPanelChrome(frame)
 	return header
 end
 
+-- Classic windows such as the spellbook draw their art in a frame with room
+-- around it for tabs. The panel covers `inset` = { left, top, right, bottom }
+-- of the frame, and the header takes the title, close button and portrait
+-- given (each optional). Returns the header and the panel's rect.
+function NS:SkinClassicWindow(frame, inset, title, close, portrait)
+	local P = NS.panelStyle
+	local rect = frame:CreateTexture(nil, "BACKGROUND")
+	rect:SetPoint("TOPLEFT", frame, "TOPLEFT", inset[1], -inset[2])
+	rect:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -inset[3], inset[4])
+	local panel = NS:CreateTile(frame, 0, 0, NS.color.panel)
+	panel.anchor = rect
+	panel:Layout()
+
+	local header = NS:SkinPanelChrome(frame)
+	header:ClearAllPoints()
+	header:SetPoint("TOPLEFT", rect, "TOPLEFT", P.margin, -P.margin)
+	header:SetPoint("TOPRIGHT", rect, "TOPRIGHT", -P.margin, -P.margin)
+	if title then
+		NS:Adopt(title, header)
+		NS:StyleFont(title, 12, "CENTER")
+		title:ClearAllPoints()
+		title:SetPoint("LEFT", header, "LEFT", P.header, 0)
+		title:SetPoint("RIGHT", header, "RIGHT", -P.header, 0)
+	end
+	if close then
+		close:SetSize(P.header, P.header)
+		close:ClearAllPoints()
+		close:SetPoint("RIGHT", header, "RIGHT", 0, 0)
+		NS:SkinCloseButton(close)
+	end
+	if portrait then
+		NS:SkinPanelPortrait(frame, header, portrait)
+	end
+	return header, rect
+end
+
 -- The portrait of a panel from NS:SkinPanelFrame (or `portrait`, for
 -- frames with their own) becomes a small square icon at the header's left
 -- end. Returns the portrait.
@@ -439,6 +498,8 @@ function NS:SkinPanelPortrait(frame, header, portrait)
 	local size = NS.panelStyle.header - 4
 	if container and container.CircleMask and portrait == container.portrait then
 		portrait:RemoveMaskTexture(container.CircleMask)
+	elseif frame.CircleMask and portrait == frame.Portrait then
+		portrait:RemoveMaskTexture(frame.CircleMask) -- classic bag windows
 	end
 	NS:Adopt(portrait, header)
 	portrait:SetDrawLayer("ARTWORK")
@@ -675,6 +736,33 @@ function NS:SkinScrollBar(bar)
 	SkinStepper(bar.Forward, "down")
 end
 
+-- Classic scroll bars (UIPanelScrollBarTemplate sliders) get the same look.
+-- Their thumb is a texture, so it has no hover state.
+local function SkinSliderStepper(button, direction)
+	if not button then return end
+	NS:HideTextures(button:GetNormalTexture(), button:GetPushedTexture(),
+		button:GetDisabledTexture(), button:GetHighlightTexture())
+	local strokes = NS:CreateChevron(button, direction)
+	NS:HookButtonStates(button, function(control)
+		NS:SetStrokeBrightness(strokes, NS:ControlBrightness(control))
+	end)
+end
+
+function NS:SkinSliderScrollBar(bar)
+	if not bar or not bar.GetThumbTexture then return end
+	local rail = NS:CreateTexture(bar, "BACKGROUND", 0, NS.color.highlight)
+	rail:SetPoint("TOP", bar, "TOP")
+	rail:SetPoint("BOTTOM", bar, "BOTTOM")
+	rail:SetWidth(SCROLL_WIDTH)
+	local thumb = bar:GetThumbTexture()
+	if thumb then
+		thumb:SetColorTexture(unpack(NS.color.borderHover))
+		thumb:SetWidth(SCROLL_WIDTH)
+	end
+	SkinSliderStepper(bar.ScrollUpButton, "up")
+	SkinSliderStepper(bar.ScrollDownButton, "down")
+end
+
 ---------------------------------------------------------------------------
 -- Tab systems (TabSystemTemplate): every tab a tile, the selected one with
 -- an accent border. Tabs are pooled and set up again whenever Blizzard
@@ -742,6 +830,84 @@ function NS:SkinTabSystem(tabSystem, style)
 		local tab = system.tabs[#system.tabs]
 		if tab then SkinTab(tab, style) end
 	end)
+end
+
+-- Classic tabs (CharacterFrameTabButtonTemplate and alike): a tile over the
+-- tab's visible part, `inset` = { left, right, top, bottom } within the
+-- tab. Blizzard disables the selected tab, which gets an accent border.
+--
+-- The button applies a font object per state, so it gets ours: dim while
+-- idle, light on hover and when selected. Selecting or deselecting a tab
+-- moves its text up or down (and resets the selected font); it stays
+-- centered on the tile instead.
+
+local classicTabs = {} -- [tab] = tile
+local classicTabFonts
+local classicTabsHooked = false
+
+local function ClassicTabFonts()
+	if not classicTabFonts then
+		classicTabFonts = {}
+		for key, color in pairs({ normal = NS.color.dim, highlight = NS.color.text, selected = NS.color.text }) do
+			local font = CreateFont("AbsoluteUIClassicTab_" .. key)
+			font:SetFontObject(NS:GetFont(12))
+			font:SetTextColor(color[1], color[2], color[3])
+			font:SetShadowOffset(1, -1)
+			font:SetShadowColor(0, 0, 0, 0.9)
+			classicTabFonts[key] = font
+		end
+	end
+	return classicTabFonts
+end
+
+local function SyncClassicTab(tab)
+	local tile = classicTabs[tab]
+	if not tile then return end
+	local fonts = ClassicTabFonts()
+	tab:SetDisabledFontObject(fonts.selected)
+	local text = tab:GetFontString()
+	if text then
+		text:SetFontObject(tab:IsEnabled() and fonts.normal or fonts.selected)
+		text:ClearAllPoints()
+		text:SetPoint("CENTER", tile.fill, "CENTER", 0, 0)
+	end
+	tile:SetBorderColor(unpack(tab:IsEnabled() and NS.color.border or NS.color.accent))
+end
+
+-- Returns the tile.
+function NS:SkinClassicTab(tab, inset)
+	if not tab or classicTabs[tab] then return classicTabs[tab] end
+	for _, region in ipairs({ tab:GetRegions() }) do
+		if region:IsObjectType("Texture") then
+			region:SetAlpha(0)
+		end
+	end
+	NS:HideTextures(tab:GetNormalTexture(), tab:GetPushedTexture(), tab:GetDisabledTexture(), tab:GetHighlightTexture())
+
+	local rect = tab:CreateTexture(nil, "BACKGROUND")
+	rect:SetPoint("TOPLEFT", tab, "TOPLEFT", inset[1], -inset[3])
+	rect:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -inset[2], inset[4])
+	local tile = NS:CreateTile(tab, 0, 0, NS.color.tile)
+	tile.anchor = rect
+	tile:Layout()
+	local hover = NS:CreateTexture(tab, "HIGHLIGHT", 0, TAB_HOVER)
+	hover:SetAllPoints(tile.fill)
+	classicTabs[tab] = tile
+
+	local fonts = ClassicTabFonts()
+	tab:SetNormalFontObject(fonts.normal)
+	tab:SetHighlightFontObject(fonts.highlight)
+	-- Spellbook tabs move their text in OnEnable/OnDisable, talent tabs in
+	-- PanelTemplates_SelectTab/DeselectTab.
+	tab:HookScript("OnEnable", SyncClassicTab)
+	tab:HookScript("OnDisable", SyncClassicTab)
+	if not classicTabsHooked then
+		classicTabsHooked = true
+		NS:Hook(nil, "PanelTemplates_SelectTab", SyncClassicTab)
+		NS:Hook(nil, "PanelTemplates_DeselectTab", SyncClassicTab)
+	end
+	SyncClassicTab(tab)
+	return tile
 end
 
 local function HideDividers(bar)

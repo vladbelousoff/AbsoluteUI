@@ -105,6 +105,22 @@ local function SkinButton(button)
 	UpdatePixels(button)
 end
 
+-- The classic main bar sits on Blizzard's big bar art (its counterpart of
+-- BorderArt), and the stance and pet bars on backgrounds of their own. The
+-- art frame keeps running its events, so only its textures go. The
+-- gryphons stay, as on modern clients: Edit Mode's "Hide Bar Art" hides
+-- them.
+function M:HideClassicArt()
+	NS:KillGlobals({
+		"MainMenuBarTexture0", "MainMenuBarTexture1", "MainMenuBarTexture2", "MainMenuBarTexture3",
+		"MainMenuBarTextureExtender", "MainMenuBarMaxLevelBar", "MainMenuBarPerformanceBarFrame",
+	})
+	NS:KillAll(StanceBar, { "BackgroundArtLeft", "BackgroundArtMiddle", "BackgroundArtRight" })
+	for _, texture in ipairs(PetActionBar and PetActionBar.BackgroundArtTextures or {}) do
+		NS:Kill(texture)
+	end
+end
+
 function M:Init()
 	for _, barName in ipairs(BARS) do
 		local bar = _G[barName]
@@ -119,6 +135,9 @@ function M:Init()
 	if main then
 		NS:Kill(main.BorderArt)
 		NS:KeepDividersHidden(main)
+	end
+	if NS.isClassic then
+		self:HideClassicArt()
 	end
 
 	NS:RegisterPixelClient(function()

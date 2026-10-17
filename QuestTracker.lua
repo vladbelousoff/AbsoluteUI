@@ -6,7 +6,9 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("QuestTracker", { setting = "questTracker", addon = "Blizzard_ObjectiveTracker" })
+local M = NS:NewModule("QuestTracker", {
+	setting = "questTracker", addon = "Blizzard_ObjectiveTracker", flavor = "modern",
+})
 
 local MODULES = {
 	"ScenarioObjectiveTracker", "UIWidgetObjectiveTracker", "CampaignQuestObjectiveTracker",

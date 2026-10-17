@@ -124,6 +124,15 @@ NS.layouts = {
 		power    = { 44, -31, 113, -43 },
 		nameSize = 10,
 	},
+	-- The same card in the classic PetFrame (128x53).
+	petClassic = {
+		panel    = { 8, -4, 120, -46 },
+		portrait = { 11, -7, 47, -43 },
+		header   = { 48, -7, 117, -16 },
+		health   = { 48, -18, 117, -30 },
+		power    = { 48, -31, 117, -43 },
+		nameSize = 10,
+	},
 }
 
 -- Window panels (loot, bags): every gap is `margin`; the header strip is

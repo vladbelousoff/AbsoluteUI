@@ -14,7 +14,7 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("WorldMap", { setting = "worldMap", addon = "Blizzard_WorldMap" })
+local M = NS:NewModule("WorldMap", { setting = "worldMap", addon = "Blizzard_WorldMap", flavor = "modern" })
 
 local MARGIN = NS.panelStyle.margin
 -- The frame around the canvas and the quest list, past their edges. Every

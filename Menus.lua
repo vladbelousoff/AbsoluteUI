@@ -3,9 +3,9 @@
 -- Menus and their rows are run by Blizzard's compositor: it hands out and
 -- resets every region on them, and doesn't allow creating new ones. Menu
 -- frames are pooled, so each gets a child frame of ours once, carrying the
--- panel, shown whenever it opens with Blizzard's default style. Rows are
--- only restyled through the regions Blizzard attaches (post-hooks on
--- MenuVariants).
+-- panel, shown whenever it opens with one of Blizzard's default styles.
+-- Rows are only restyled through the regions Blizzard attaches (post-hooks
+-- on MenuVariants).
 
 local _, NS = ...
 
@@ -42,17 +42,9 @@ local function LayoutPanel(menu, panel)
 	panel.tile:Layout()
 end
 
--- Every menu, submenus included. Menus from other addons with their own
--- style keep it.
-local function OnMenuShow(_, menu)
-	local panel = panels[menu]
-	local default = MenuStyle1Mixin and menu.Generate == MenuStyle1Mixin.Generate
-	if not default then
-		if panel then panel.frame:Hide() end
-		return
-	end
-	panel = panel or CreatePanel(menu)
-	-- Blizzard attaches its background again on every open.
+-- Blizzard attaches its background again on every open.
+local function SkinMenu(menu)
+	local panel = panels[menu] or CreatePanel(menu)
 	for _, region in ipairs({ menu:GetRegions() }) do
 		if region:IsObjectType("Texture") then
 			region:SetAlpha(0)
@@ -60,6 +52,30 @@ local function OnMenuShow(_, menu)
 	end
 	LayoutPanel(menu, panel)
 	panel.frame:Show()
+end
+
+-- Every menu, submenus included. Menus from other addons with their own
+-- style keep it.
+local function OnMenuShow(_, menu)
+	local default = MenuStyle1Mixin and menu.Generate == MenuStyle1Mixin.Generate
+	if default then
+		SkinMenu(menu)
+	elseif panels[menu] then
+		panels[menu].frame:Hide()
+	end
+end
+
+-- Classic menus have no show event; the default styles are caught as they
+-- generate their background on every open. A pooled menu that opens with
+-- another style next has our panel hidden since it closed.
+local CLASSIC_STYLES = { "MenuStyle1Mixin", "MenuStyle1ThinMixin", "MenuStyle2Mixin" }
+
+local function OnClassicGenerate(menu)
+	if not panels[menu] then
+		local panel = CreatePanel(menu)
+		menu:HookScript("OnHide", function() panel.frame:Hide() end)
+	end
+	SkinMenu(menu)
 end
 
 ---------------------------------------------------------------------------
@@ -87,6 +103,22 @@ local function SkinSelection(_, row)
 	StyleTexts(row)
 end
 
+-- Classic rows have one texture, with a yellow atlas when selected (and
+-- none at all for an unchecked checkbox): a flat box, filled with the
+-- accent color when selected.
+local function SkinClassicSelection(_, row)
+	local box = row.leftTexture1
+	if box then
+		local atlas = box:GetAtlas()
+		NS:StyleCheckbox(box)
+		if type(atlas) == "string" and atlas:find("yellow") then
+			local c = NS.color.accent
+			box:SetColorTexture(c[1], c[2], c[3], 1)
+		end
+	end
+	StyleTexts(row)
+end
+
 ---------------------------------------------------------------------------
 -- Module
 ---------------------------------------------------------------------------
@@ -96,11 +128,21 @@ function M:Init()
 		NS:Missing("MenuVariants")
 		return
 	end
-	EventRegistry:RegisterCallback("MenuProxy.OnShow", OnMenuShow, M)
+	if NS.isClassic then
+		-- Menus copy the hooked function when they take on a style.
+		for _, name in ipairs(CLASSIC_STYLES) do
+			if _G[name] then
+				NS:Hook(_G[name], "Generate", OnClassicGenerate)
+			end
+		end
+	else
+		EventRegistry:RegisterCallback("MenuProxy.OnShow", OnMenuShow, M)
+	end
 
 	-- Each runs as Blizzard builds a row, before the menu measures it.
+	local selection = NS.isClassic and SkinClassicSelection or SkinSelection
 	NS:Hook(MenuVariants, "CreateFontString", StyleTexts)
 	NS:Hook(MenuVariants, "CreateHighlight", SkinHighlight)
-	NS:Hook(MenuVariants, "CreateCheckbox", SkinSelection)
-	NS:Hook(MenuVariants, "CreateRadio", SkinSelection)
+	NS:Hook(MenuVariants, "CreateCheckbox", selection)
+	NS:Hook(MenuVariants, "CreateRadio", selection)
 end

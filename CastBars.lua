@@ -118,6 +118,15 @@ local function Skin(bar, fillBar)
 	for _, key in ipairs(KILL) do
 		NS:Kill(bar[key])
 	end
+	-- Classic bars also have an unnamed backdrop.
+	if bar.classicStyleCastBar then
+		local fill = bar:GetStatusBarTexture()
+		for _, region in ipairs({ bar:GetRegions() }) do
+			if region:IsObjectType("Texture") and region ~= fill and region:GetDrawLayer() == "BACKGROUND" then
+				NS:Kill(region)
+			end
+		end
+	end
 
 	skin.box = NS:CreateBox(bar, bar, skin.fillBar, NS.color.tile)
 	skin.shadow = NS:CreateShadow(bar, skin.box.base)
@@ -136,7 +145,9 @@ local function Skin(bar, fillBar)
 	skin.spark:Hide()
 
 	NS:Hook(bar, "UpdateBarFillTexture", ApplyFill)
-	NS:Hook(bar, "SetLook", StyleTexts)
+	if bar.SetLook then -- modern only
+		NS:Hook(bar, "SetLook", StyleTexts)
+	end
 	bar:HookScript("OnUpdate", OnUpdate)
 
 	StyleTexts(bar)
@@ -148,12 +159,13 @@ end
 -- Player castbar
 --
 -- Blizzard's bar is left untouched. Our mirror bar and its spell icon cover
--- its Edit Mode box (the bar plus the name strip below it), or with "Attach
--- to player frame" sit in a row above the player panel. Blizzard only shows
--- its own icon in some looks, so ours is fed from it and always shown.
+-- its Edit Mode box (the bar plus the name strip below it on modern
+-- clients, a strip above it on classic), or with "Attach to player frame"
+-- sit in a row above the player panel. Blizzard only shows its own icon in
+-- some looks, so ours is fed from it and always shown.
 ---------------------------------------------------------------------------
 
-local FOOTPRINT_BOTTOM = -12 -- Blizzard's editModeSelectionBottomOffset
+local FOOTPRINT_BOTTOM = -12 -- Blizzard's modern editModeSelectionBottomOffset
 local TEXT_INSET = 4
 
 local function CreateMirror(bar)
@@ -245,10 +257,11 @@ end
 local function PlaceOnFootprint(bar, mirror)
 	mirror:SetScale(1)
 	local px = NS:Px(bar)
+	local top = bar.editModeSelectionTopOffset or 0
 	local bottom = bar.editModeSelectionBottomOffset or FOOTPRINT_BOTTOM
-	local size = bar:GetHeight() - bottom
+	local size = bar:GetHeight() + top - bottom
 	mirror:ClearAllPoints()
-	mirror:SetPoint("TOPLEFT", bar, "TOPLEFT", size + px, 0)
+	mirror:SetPoint("TOPLEFT", bar, "TOPLEFT", size + px, top)
 	mirror:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, bottom)
 	PlaceIcon(mirror, size, px)
 end
@@ -304,7 +317,9 @@ local function SetupPlayerBar(bar)
 		NS:Hook(bar.Icon, "SetTexture", function(_, texture) icon:SetTexture(texture) end)
 	end
 
-	NS:Hook(bar, "SetLook", function() PlacePlayerBar(bar) end)
+	if bar.SetLook then
+		NS:Hook(bar, "SetLook", function() PlacePlayerBar(bar) end)
+	end
 	NS:Hook(bar, "SetCastTimeTextShown", LayoutPlayerTexts)
 	-- Scales may have changed while it was hidden.
 	bar:HookScript("OnShow", function() PlacePlayerBar(bar) end)

@@ -332,8 +332,11 @@ function NS:CreateAuraDisplay(skin)
 	d.holder = holder
 
 	-- ToT visibility, "Buffs on Top" and the focus frame's size all
-	-- reconfigure the container.
-	NS:Hook(frame, "ConfigureAuraContainer", function() d:Update() end)
+	-- reconfigure the container. Classic frames have none; the skin updates
+	-- the display after each of their aura updates instead.
+	if frame.ConfigureAuraContainer then
+		NS:Hook(frame, "ConfigureAuraContainer", function() d:Update() end)
+	end
 
 	NS:RegisterPixelClient(function()
 		for _, button in ipairs(d.buttons) do LayoutButton(button) end

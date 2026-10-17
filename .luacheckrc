@@ -1,4 +1,5 @@
--- luacheck configuration for AbsoluteUI (WoW Forever, Lua 5.1).
+-- luacheck configuration for AbsoluteUI (WoW Forever and TBC Anniversary,
+-- Lua 5.1).
 -- Run from the addon folder: luacheck .
 --
 -- Every WoW global the addon touches is listed below, so a typo in a
@@ -25,6 +26,9 @@ globals = {
 read_globals = {
 	-- Lua extensions
 	"geterrorhandler", "hooksecurefunc", "issecretvalue", "strtrim", "wipe",
+
+	-- Client flavor
+	"WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CAMELOT",
 
 	-- Frames and widget API
 	"CreateColor", "CreateFont", "CreateFontFamily", "CreateFrame", "CreateFromMixins",
@@ -72,4 +76,21 @@ read_globals = {
 	"QuestLogCount", "QuestLogQuestCount", "NavBar_CheckLength",
 	"PetFrame", "PetFrameTexture", "PetPortrait", "PetFrameFlash", "PetAttackModeTexture",
 	"PetHitIndicator", "PetFrameHealthBar", "PetFrameManaBar", "PetName",
+
+	-- Classic (TBC Anniversary) API and frames
+	"C_Reputation", "GetRestState", "ITEMS",
+	"PlayerFrameHealthBar", "PlayerFrameManaBar", "PlayerFrameReadyCheck",
+	"StanceBar", "PetActionBar", "GameTooltipStatusBar", "GossipFrameBg",
+	"LootButton1", "LootFrameUpButton", "LootFrameDownButton", "LootFramePrev", "LootFrameNext",
+	"LootFramePortraitOverlay",
+	"NUM_CONTAINER_COLUMNS", "NUM_CONTAINER_FRAMES", "BackpackTokenFrame",
+	"QuestWatchFrame", "MAX_QUESTWATCH_LINES",
+	"SpellBookFrame", "SpellButton1", "SpellBookTitleText", "SpellBookCloseButton", "SpellBookPageText",
+	"SpellBookPrevPageButton", "SpellBookNextPageButton", "ShowAllSpellRanksCheckbox",
+	"PlayerTalentFrame", "PlayerTalentFrameTalent1", "PlayerTalentFrameTitleText", "PlayerTalentFrameCloseButton",
+	"PlayerTalentFramePortrait", "PlayerTalentFrameScrollFrame",
+	"WorldMapFrameCloseButton", "MiniWorldMapTitle", "WorldMapZoomOutButton", "WORLD_MAP",
+	"QuestLogFrame", "QuestLogListScrollFrame", "QuestLogDetailScrollFrame", "QuestLogTitleText",
+	"QuestLogFrameCloseButton", "QuestLogSkillHighlight", "QuestLogTrackTitle", "QuestLogRequiredMoneyText",
+	"GetQuestLogItemLink",
 }

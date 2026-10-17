@@ -8,7 +8,7 @@ local ADDON, NS = ...
 local M = NS:NewModule("Options")
 
 local VARIABLE_PREFIX = "ABSOLUTEUI_"
-local RELOAD_NOTE = "\n\n|cffff6060Takes effect after a UI reload.|r"
+local RELOAD_NOTE = "|cffff6060Takes effect after a UI reload.|r"
 local PAD = 7 -- Blizzard's settings page inset
 
 ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ local function Button(parent, text, tooltip, onClick)
 	return button
 end
 
-local function CreateOverview(pageNames)
+local function CreateOverview()
 	local frame = CreateFrame("Frame")
 	frame:Hide()
 
@@ -137,20 +137,18 @@ local function CreateOverview(pageNames)
 	about:SetPoint("TOPLEFT", PAD, -66)
 	about:SetPoint("TOPRIGHT", -PAD * 4, -66)
 	about:SetSpacing(3)
-	local pages = table.concat(pageNames, ", "):gsub(", ([^,]+)$", " and %1")
 	about:SetText((Metadata("Notes") or "") .. "\n\n"
-		.. "Frames keep Blizzard's positions and sizes: move and scale them in Edit Mode. "
-		.. "The pages under AbsoluteUI in the list on the left cover " .. pages .. ".")
+		.. "Move and scale frames in Edit Mode. Everything else is in the pages on the left.")
 
 	local actions = SectionHeader(frame, about, "Actions")
 	local editMode = Button(frame, "Open Edit Mode",
-		"Position, size and scale of every frame and castbar.", OpenEditMode)
+		"Move and scale frames and castbars.", OpenEditMode)
 	editMode:SetPoint("TOPLEFT", actions, "BOTTOMLEFT", 0, -12)
 	local reset = Button(frame, "Reset Settings",
-		"Restore all AbsoluteUI settings to their defaults. Edit Mode layouts are not changed.", ConfirmReset)
+		"Back to default settings. Your Edit Mode layout isn't touched.", ConfirmReset)
 	reset:SetPoint("LEFT", editMode, "RIGHT", 8, 0)
 	local reload = Button(frame, "Reload UI",
-		"Reload the interface to apply changes that need it.", function() ReloadUI() end)
+		"Applies changes that need a reload.", function() ReloadUI() end)
 	reload:SetPoint("LEFT", reset, "RIGHT", 8, 0)
 
 	local commands = SectionHeader(frame, editMode, "Slash Commands")
@@ -178,12 +176,13 @@ end
 -- Setting pages
 ---------------------------------------------------------------------------
 
+-- Some settings explain themselves and only carry the reload note.
 local function Tooltip(entry)
-	local text = entry.tooltip or ""
+	local text = entry.tooltip
 	if entry.apply == "reload" then
-		text = text .. RELOAD_NOTE
+		text = text and (text .. "\n\n" .. RELOAD_NOTE) or RELOAD_NOTE
 	end
-	return text
+	return text or ""
 end
 
 -- One control per setting kind, each returning its initializer. A kind this
@@ -265,14 +264,7 @@ function M:Init()
 		return
 	end
 
-	local pageNames = {}
-	for _, entry in ipairs(NS.settingsSchema) do
-		if entry.page then
-			table.insert(pageNames, entry.page)
-		end
-	end
-
-	local root = Settings.RegisterCanvasLayoutCategory(CreateOverview(pageNames), ADDON)
+	local root = Settings.RegisterCanvasLayoutCategory(CreateOverview(), ADDON)
 	self.category = root
 	BuildPages(root)
 	Settings.RegisterAddOnCategory(root)

@@ -11,7 +11,7 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("SpellBook", { setting = "spellBook", addon = "Blizzard_PlayerSpells" })
+local M = NS:NewModule("SpellBook", { setting = "spellBook", addon = "Blizzard_PlayerSpells", flavor = "modern" })
 
 local ACCENT = NS.color.accent
 local CONTROL = 20 -- settings, search and page buttons

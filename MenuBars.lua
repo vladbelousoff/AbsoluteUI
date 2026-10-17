@@ -39,13 +39,15 @@ local tiles = {}
 ---------------------------------------------------------------------------
 
 -- Re-applied after Blizzard's UpdateTextures, which resets these atlases.
+-- Classic bag slots mark an open bag with their checked texture.
 local function ApplyBagState(button)
 	local tile = tiles[button]
 	if not tile then return end
 	NS:HideTextures(button:GetNormalTexture())
 	NS:SetFlat(button:GetPushedTexture(), STATE.pushed, tile.fill)
 	NS:SetFlat(button:GetHighlightTexture(), STATE.highlight, tile.fill)
-	NS:SetFlat(button.SlotHighlightTexture, STATE.open, tile.fill)
+	local open = button.SlotHighlightTexture or (button.GetCheckedTexture and button:GetCheckedTexture())
+	NS:SetFlat(open, STATE.open, tile.fill)
 end
 
 local function SkinBagButton(button)
@@ -71,12 +73,15 @@ local function SkinBagButton(button)
 		end
 	end
 
-	NS:Hook(button, "UpdateTextures", ApplyBagState)
+	if button.UpdateTextures then
+		NS:Hook(button, "UpdateTextures", ApplyBagState)
+	end
 	ApplyBagState(button)
 end
 
 ---------------------------------------------------------------------------
--- Micro buttons
+-- Micro buttons. Classic ones have their icon painted into the button art,
+-- so they keep Blizzard's look.
 ---------------------------------------------------------------------------
 
 local function SkinMicroButton(button)
@@ -152,8 +157,10 @@ function M:Skin()
 		end
 	end
 
-	for _, name in ipairs(MICRO_BUTTONS) do
-		SkinMicroButton(_G[name])
+	if not NS.isClassic then
+		for _, name in ipairs(MICRO_BUTTONS) do
+			SkinMicroButton(_G[name])
+		end
 	end
 
 	if BagsBar then

@@ -6,7 +6,9 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("DamageMeter", { setting = "damageMeter", addon = "Blizzard_DamageMeter" })
+local M = NS:NewModule("DamageMeter", {
+	setting = "damageMeter", addon = "Blizzard_DamageMeter", flavor = "modern",
+})
 
 local windows = {}
 local entries = {}

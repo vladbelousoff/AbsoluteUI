@@ -13,7 +13,14 @@ local M = NS:NewModule("Quests", { setting = "questFrames" })
 local ROW_HOVER = NS.color.rowHover
 
 local QUEST_PANELS = { "QuestFrameRewardPanel", "QuestFrameProgressPanel", "QuestFrameDetailPanel", "QuestFrameGreetingPanel" }
+-- Keys on the panel, or globals after it on classic ("QuestFrameRewardPanelBg").
 local PANEL_ART = { "Bg", "MaterialTopLeft", "MaterialTopRight", "MaterialBotLeft", "MaterialBotRight", "SealMaterialBG" }
+-- Classic quest text scrolls in old style scroll frames with a track drawn
+-- on the frame.
+local SCROLL_FRAMES = {
+	"QuestDetailScrollFrame", "QuestRewardScrollFrame", "QuestProgressScrollFrame", "QuestGreetingScrollFrame",
+}
+local SCROLL_ART = { "Top", "Middle", "Bottom" }
 local QUEST_BUTTONS = {
 	"QuestFrameCompleteQuestButton", "QuestFrameGoodbyeButton", "QuestFrameCompleteButton",
 	"QuestFrameDeclineButton", "QuestFrameAcceptButton", "QuestFrameGreetingGoodbyeButton",
@@ -104,6 +111,13 @@ local function SyncCard(button)
 	local chosen = QuestInfoFrame and button:GetParent() == QuestInfoRewardsFrame
 		and button.type == "choice" and QuestInfoFrame.itemChoice == button:GetID()
 	card.tile:SetBorderColor(unpack(chosen and NS.color.accent or NS.color.border))
+	return card
+end
+
+-- For item buttons in other quest windows (the classic quest log). Returns
+-- the card: { tile, icon (a box) }.
+function NS:SyncRewardCard(button)
+	return SyncCard(button)
 end
 
 local function IsCardButton(button)
@@ -234,11 +248,29 @@ local function StyleTitleButton(button)
 	NS:SetFlat(button:GetHighlightTexture(), ROW_HOVER, button)
 end
 
+-- Classic greetings use a fixed set of buttons ("QuestTitleButton1"...).
 local function OnGreetingShow(panel)
 	local pool = panel.titleButtonPool
-	if not pool then return end
-	for button in pool:EnumerateActive() do
-		StyleTitleButton(button)
+	if pool then
+		for button in pool:EnumerateActive() do
+			StyleTitleButton(button)
+		end
+		return
+	end
+	local i = 1
+	while _G["QuestTitleButton" .. i] do
+		StyleTitleButton(_G["QuestTitleButton" .. i])
+		i = i + 1
+	end
+end
+
+local function SkinClassicScrollFrames()
+	for _, name in ipairs(SCROLL_FRAMES) do
+		for _, key in ipairs(SCROLL_ART) do
+			NS:Kill(_G[name .. key])
+		end
+		local frame = _G[name]
+		NS:SkinSliderScrollBar(frame and frame.ScrollBar)
 	end
 end
 
@@ -254,9 +286,12 @@ function M:SkinQuestFrame()
 		local panel = _G[name]
 		if panel then
 			for _, key in ipairs(PANEL_ART) do
-				NS:Kill(panel[key])
+				NS:Kill(panel[key] or _G[name .. key])
 			end
 		end
+	end
+	if NS.isClassic then
+		SkinClassicScrollFrames()
 	end
 	for _, name in ipairs(QUEST_BUTTONS) do
 		NS:SkinPanelButton(_G[name])
@@ -311,6 +346,7 @@ function M:SkinGossipFrame()
 	local frame = GossipFrame
 	SkinWindow(frame)
 	NS:Kill(frame.Background)
+	NS:Kill(GossipFrameBg) -- classic: parchment behind the panel
 	local panel = frame.GreetingPanel
 	if not panel then return end
 	for _, region in ipairs({ panel:GetRegions() }) do

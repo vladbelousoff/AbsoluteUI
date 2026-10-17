@@ -2,88 +2,77 @@
 
 <p align="center"><img src=".github/logo.svg" width="128" alt="AbsoluteUI logo"></p>
 
-A clean, modern restyle of Blizzard's interface for **World of Warcraft Forever**.
+A cleaner, more modern look for the default UI. Works on WoW Forever and TBC
+Anniversary.
 
-AbsoluteUI redraws Blizzard's frames in place instead of replacing them. Every
-frame keeps its Blizzard position, size and scale, so Edit Mode stays in charge
-of your layout, and secure behavior (clicks, menus, keybinds, combat) works
-exactly as before.
+It doesn't replace Blizzard's frames, it reskins them. Everything stays where
+Edit Mode puts it, and clicks, targeting, menus and keybinds work like in the
+default UI, combat included.
 
-## Features
+## What's in it
 
-- **Unit frames**: player, target and focus with 3D portraits (or flat
-  portraits, or class icons), class or reaction colored health, shields, a
-  draining recent-damage indicator and a low health warning. Elites, rares and bosses get a colored
-  portrait accent.
-- **Target of target**: a compact card tucked under the target and focus frames.
-- **Pet frame**: the same compact card, with a red border while the pet attacks.
-- **Auras**: target and focus buffs and debuffs with debuff type borders,
-  stealable highlights, larger icons for your own auras and short countdowns.
-- **Castbars**: flat bars with the spell icon, colored by cast type, an armored
-  border for uninterruptible casts and a latency marker on your own castbar.
-  Your castbar can optionally sit above the player frame. Swing timers and the
-  experience and reputation bars get the same look.
-- **Action bars**: square icons, flat highlight states and readable outlined
-  text for action buttons, the bag bar and the micro menu. The micro menu and
-  bag bar can be hidden (keybinds keep working).
-- **Skins**: tooltips (quality and class colored borders, health bar),
-  right-click and dropdown menus, quest tracker, the NPC quest and gossip
-  windows, the world map and its quest log (breadcrumb navigation, quest
-  headers as tiles, light quest text), loot window, bags (Blizzard's and [Bagnon](https://www.curseforge.com/wow/addons/bagnon)),
-  the spellbook and talents window (square spell icons, talents with borders
-  colored by state) and Blizzard's built-in damage meter.
-- **Media**: a choice of bar textures and fonts for every bar AbsoluteUI draws.
+- Player, target, focus and pet frames with 3D portraits (or 2D / class
+  icons), absorbs, a damage trail on the health bar and a low health warning.
+  Elites, rares and bosses get a colored portrait border.
+- Small target of target frames under target and focus
+- Target and focus buffs/debuffs, colored by debuff type, your own a bit bigger
+- Castbars with spell icon and latency. Yours can also sit above the player
+  frame.
+- Action bars, bag bar and micro menu. Micro menu and bags can be hidden.
+- XP/rep bars and swing timers in the castbar style
+- Skins for tooltips, menus, quest tracker, quest and gossip windows, map and
+  quest log, loot, bags ([Bagnon](https://www.curseforge.com/wow/addons/bagnon)
+  too), spellbook and talents, and the damage meter
+- A bunch of bar textures and fonts to pick from
 
-## Installation
+Swing timers and the damage meter are Forever only, TBC doesn't have them. On
+TBC the micro menu also keeps Blizzard's buttons.
 
-1. Download the latest release.
-2. Extract the `AbsoluteUI` folder into the `Interface/AddOns` folder of your
-   WoW Forever installation.
-3. Restart the game or type `/reload`.
+## Install
+
+Grab the latest release and drop the `AbsoluteUI` folder into
+`Interface/AddOns` (`_classic_beta_` for Forever, `_anniversary_` for TBC).
+Same zip for both.
 
 ## Usage
 
-Open the settings with `/aui`, from the AddOns compartment button on the
-minimap, or through **Options > AddOns > AbsoluteUI**. Settings are grouped in
-pages: General, Unit Frames, Castbars, Action Bars, Skins and Damage Meter.
+`/aui` opens the settings. They're also in the AddOns compartment on the
+minimap and under Options > AddOns > AbsoluteUI. Positions and sizes are done
+in Edit Mode, same as the default UI.
 
-Positions and sizes are set in **Edit Mode**, as for the default UI.
+- `/aui` - settings
+- `/aui help` - list commands
+- `/aui debug` - module state, missing frames and caught errors
+- `/aui reset` - back to default settings
 
-| Command       | Description                          |
-| ------------- | ------------------------------------ |
-| `/aui`        | Open the settings                    |
-| `/aui help`   | List the commands                    |
-| `/aui debug`  | Show module state and diagnostics    |
-| `/aui reset`  | Restore the default settings         |
+## Other addons
 
-## Compatibility
+Bagnon gets an AbsoluteUI skin unless you picked another one in Bagnon. If
+another addon already skins something, turn that skin off in the settings.
 
-- Built for WoW Forever (interface 16001).
-- Works alongside Bagnon, which gets an AbsoluteUI skin unless you picked
-  another skin in Bagnon's options.
-- Disable a skin in the settings if another addon already restyles the same
-  part of the UI.
+## Bugs
 
-## Reporting problems
-
-Please include the output of `/aui debug` and any Lua error (for example from
-BugSack) with your report.
+Open an issue with the output of `/aui debug` and the Lua error if there is
+one (BugSack makes that easy).
 
 ## Development
 
-The addon has no dependencies or build step. Lint with `luacheck .`
-(configuration in `.luacheckrc`).
+No libs, no build step. `luacheck .` for linting.
 
-Releases are packaged with the [BigWigs packager](https://github.com/BigWigsMods/packager)
-(see `.pkgmeta`); pushing a version tag builds the release zip.
+One TOC for both clients. `NS.flavor` is `"modern"` on Forever and
+`"classic"` on TBC; modules and settings that only exist on one of them have a
+`flavor` field. The TBC versions of windows that are completely different
+live in `Classic/`.
+
+To release, bump `## Version:` in the TOC, add a changelog entry and push to
+main. CI tags it and the [BigWigs packager](https://github.com/BigWigsMods/packager)
+does the rest. Pushing a tag by hand works too.
 
 ## Credits
 
-Bundled fonts, each under its own license in `Media/Fonts`:
-PT Sans Narrow, Fira Sans Condensed, Ubuntu Condensed, Play, Russo One and
-Philosopher.
+Fonts in `Media/Fonts`, each with its own license: PT Sans Narrow, Fira Sans
+Condensed, Ubuntu Condensed, Play, Russo One and Philosopher.
 
 ## License
 
-AbsoluteUI is released under the [MIT License](LICENSE). Bundled fonts keep
-their own licenses.
+MIT, see [LICENSE](LICENSE). The fonts keep their own licenses.

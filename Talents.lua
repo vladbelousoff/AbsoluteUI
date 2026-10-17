@@ -8,7 +8,7 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("Talents", { setting = "spellBook", addon = "Blizzard_PlayerSpells" })
+local M = NS:NewModule("Talents", { setting = "spellBook", addon = "Blizzard_PlayerSpells", flavor = "modern" })
 
 local ACCENT = NS.color.accent
 local CONTROL = 20 -- search options button

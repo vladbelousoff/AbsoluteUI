@@ -10,6 +10,12 @@ local ADDON, NS = ...
 NS.name = ADDON
 NS.version = C_AddOns and C_AddOns.GetAddOnMetadata(ADDON, "Version") or "?"
 
+-- WoW Forever runs Blizzard's modern frames, TBC Anniversary the classic
+-- ones. Settings and modules that only one of them has carry a matching
+-- `flavor`.
+NS.isClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE and WOW_PROJECT_ID ~= WOW_PROJECT_CAMELOT
+NS.flavor = NS.isClassic and "classic" or "modern"
+
 ---------------------------------------------------------------------------
 -- Output and diagnostics
 ---------------------------------------------------------------------------
@@ -162,6 +168,18 @@ function NS:KillAll(root, keys)
 	end
 end
 
+-- Classic frames name their regions globally instead.
+function NS:KillGlobals(names)
+	for _, name in ipairs(names) do
+		local region = _G[name]
+		if region then
+			NS:Kill(region)
+		else
+			NS:Missing(name)
+		end
+	end
+end
+
 -- Moves a Blizzard region onto one of our frames so it draws above our art.
 -- `target` must cover the old parent's rect, so anchors relative to the
 -- parent resolve to the same place.
@@ -208,6 +226,8 @@ end
 -- local M = NS:NewModule(name, {
 --   setting = "key",          -- toggle that enables the module (read at login)
 --   addon = "Blizzard_Name",  -- Init waits until this addon has loaded
+--   flavor = "modern",        -- only on this client (NS.flavor); elsewhere the
+--                             -- module is returned unregistered and never loads
 -- })
 --
 -- Optional, error-isolated methods:
@@ -234,8 +254,11 @@ function ModuleMixin:GetState()
 end
 
 function NS:NewModule(name, spec)
-	assert(not NS.modules[name], "AbsoluteUI: duplicate module " .. tostring(name))
 	local module = Mixin({ name = name }, ModuleMixin, spec or {})
+	if module.flavor and module.flavor ~= NS.flavor then
+		return module
+	end
+	assert(not NS.modules[name], "AbsoluteUI: duplicate module " .. tostring(name))
 	table.insert(modules, module)
 	NS.modules[name] = module
 	return module

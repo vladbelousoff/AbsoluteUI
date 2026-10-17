@@ -13,9 +13,6 @@ function NS.IsSecret(value)
 end
 local IsSecret = NS.IsSecret
 
--- A dimmed "|" ("||" escapes it). ASCII, since not every bar font has "·".
-local SEPARATOR = " |cff8a8f99||r "
-
 -- Each step starts where the one below would round to "1000.0k".
 local UNITS = {
 	{ 999950000, 1e9, "b" },
@@ -68,7 +65,7 @@ local function SecretText(unit, value, mode)
 		end
 	end
 	if valueText and percentText then
-		return format("%s%s%s", valueText, SEPARATOR, percentText)
+		return format("%s (%s)", valueText, percentText)
 	end
 	return valueText or percentText or ""
 end
@@ -81,7 +78,7 @@ function NS.PowerText(value)
 	return NS.ShortNumber(value)
 end
 
--- `value`/`maxValue` are what the bar displays.
+-- `value`/`maxValue` are what the bar displays. "both" is "9.4k (85%)".
 function NS.HealthText(unit, value, maxValue, mode)
 	if mode == "none" or not unit or not UnitExists(unit) then
 		return ""
@@ -101,5 +98,8 @@ function NS.HealthText(unit, value, maxValue, mode)
 	elseif mode == "value" then
 		return NS.ShortNumber(value)
 	end
-	return NS.ShortNumber(value) .. SEPARATOR .. percentText
+	if not fraction then
+		return NS.ShortNumber(value)
+	end
+	return format("%s (%s)", NS.ShortNumber(value), percentText)
 end

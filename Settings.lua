@@ -13,6 +13,8 @@
 --   apply    "refresh" (default): every module's Refresh runs
 --            "live":    only the NS:OnSettingChanged listeners run
 --            "reload":  takes effect after a UI reload
+--   flavor   "modern" | "classic": the setting only exists on that client
+--            (NS.flavor); pages and sections left empty are dropped too
 
 local _, NS = ...
 
@@ -25,101 +27,116 @@ local TEXT_CHOICES = {
 	{ "none", "Hidden" },
 }
 
-NS.settingsSchema = {
+local SCHEMA = {
 	{ page = "General" },
 	{ section = "Media" },
 	{ key = "barTexture", kind = "choice", default = "bevel", apply = "live", label = "Bar texture",
-		tooltip = "Texture for every AbsoluteUI bar: unit frames, castbars, the tooltip health bar, "
-			.. "quest tracker bars and the damage meter.",
+		tooltip = "Texture used by all AbsoluteUI bars.",
 		choices = function() return NS:MediaChoices(NS.barTextures) end },
 	{ key = "barFont", kind = "choice", default = "friz", apply = "live", label = "Bar text font",
-		tooltip = "Font for the health and power numbers on the unit frames and the damage meter rows.",
+		tooltip = "Font for the numbers on health, power and meter bars.",
 		choices = function() return NS:MediaChoices(NS.fontFaces) end },
 	{ section = "Colors" },
 	{ key = "classColors", kind = "toggle", default = true, label = "Class colored health",
-		tooltip = "Color player health bars by class. Creatures always use reaction colors." },
+		tooltip = "Color player health bars by class. NPCs always use reaction colors." },
 	{ key = "lowHealth", kind = "toggle", default = true, label = "Low health warning",
-		tooltip = "Tint the empty part of a health bar red below 35% health." },
+		tooltip = "Health bar background turns red below 35% health." },
 
 	{ page = "Unit Frames" },
 	{ section = "Portrait" },
 	{ key = "portrait", kind = "choice", default = "3d", label = "Portrait style",
-		tooltip = "3D model of the unit, its flat portrait, or the class icon for players.",
+		tooltip = "3D model, flat portrait, or class icon (players only).",
 		choices = { { "3d", "3D model" }, { "2d", "Flat portrait" }, { "class", "Class icon" } } },
 	{ section = "Text" },
 	{ key = "playerText", kind = "choice", default = "value", label = "Player health",
-		tooltip = "What the player health bar shows.", choices = TEXT_CHOICES },
+		tooltip = "What to show on the player health bar.", choices = TEXT_CHOICES },
 	{ key = "targetText", kind = "choice", default = "both", label = "Target health",
-		tooltip = "What the target health bar shows.", choices = TEXT_CHOICES },
+		tooltip = "What to show on the target health bar.", choices = TEXT_CHOICES },
 	{ key = "focusText", kind = "choice", default = "both", label = "Focus health",
-		tooltip = "What the focus health bar shows.", choices = TEXT_CHOICES },
+		tooltip = "What to show on the focus health bar.", choices = TEXT_CHOICES },
 	{ key = "powerText", kind = "toggle", default = true, label = "Power values",
-		tooltip = "Show mana, rage or energy values on the power bars." },
+		tooltip = "Show numbers on mana, rage and energy bars." },
 
 	{ page = "Castbars" },
 	{ section = "Player Castbar" },
 	{ key = "castbarOnPlayerFrame", kind = "toggle", default = false, apply = "live",
 		label = "Attach to player frame",
-		tooltip = "Show your castbar in a row above the player frame, like the target's, instead of where "
-			.. "Edit Mode places it." },
+		tooltip = "Put your castbar above the player frame instead of where Edit Mode has it." },
 	{ key = "castLatency", kind = "toggle", default = true, apply = "live", label = "Show latency",
-		tooltip = "Shade the end of your castbar by your latency. Once the cast reaches the shaded part, "
-			.. "you can already queue your next spell." },
+		tooltip = "Shades the end of the castbar by your latency. Once the cast is in the shaded part you can "
+			.. "queue the next spell." },
 	{ section = "Swing Timer" },
-	{ key = "swingTimer", kind = "toggle", default = true, apply = "reload", label = "Restyle swing timers",
-		tooltip = "Give the main hand, off hand and ranged swing timers the castbar look. Edit Mode keeps "
-			.. "placing them." },
+	{ key = "swingTimer", kind = "toggle", default = true, apply = "reload", flavor = "modern",
+		label = "Restyle swing timers",
+		tooltip = "Castbar look for the swing timers. Edit Mode still places them." },
 
 	{ page = "Action Bars" },
 	{ section = "Style" },
 	{ key = "actionBars", kind = "toggle", default = true, apply = "reload",
 		label = "Restyle action bars",
-		tooltip = "Give action buttons, bag slots and the micro menu the AbsoluteUI look." },
+		tooltip = "Flat look for action buttons and the bag bar (and the micro menu on Forever)." },
 	{ key = "trackingBars", kind = "toggle", default = true, apply = "reload",
-		label = "Restyle experience and reputation bars",
-		tooltip = "Flat experience and reputation bars in the castbar look: purple experience (blue while "
-			.. "rested), reputation colored by standing. Edit Mode keeps placing them." },
+		label = "Restyle XP and reputation bars",
+		tooltip = "XP and rep bars in the castbar style. XP is purple (blue while rested), rep is colored by "
+			.. "standing." },
 	{ section = "Visibility" },
 	{ key = "hideMicroMenu", kind = "toggle", default = false, label = "Hide micro menu",
-		tooltip = "Hide the menu buttons (character, spellbook, talents...). Their keybinds keep working. "
-			.. "Shown while Edit Mode is open." },
+		tooltip = "Keybinds still work, and it shows up again while Edit Mode is open." },
 	{ key = "hideBags", kind = "toggle", default = false, label = "Hide bag bar",
-		tooltip = "Hide the bag buttons. The bags keybind keeps working. Shown while Edit Mode is open." },
+		tooltip = "Keybinds still work, and it shows up again while Edit Mode is open." },
 
 	{ page = "Skins" },
 	{ section = "Blizzard Windows" },
 	{ key = "tooltips", kind = "toggle", default = true, apply = "reload", label = "Tooltips",
-		tooltip = "Tooltips with borders colored by item quality or unit class and reaction." },
+		tooltip = "Borders colored by item quality or by class/reaction." },
 	{ key = "menus", kind = "toggle", default = true, apply = "reload", label = "Menus",
-		tooltip = "Right-click and dropdown menus: a flat panel, flat checkboxes and a subtle row highlight." },
-	{ key = "questTracker", kind = "toggle", default = true, apply = "reload", label = "Quest tracker",
-		tooltip = "The objective tracker. Its background follows Edit Mode's opacity setting." },
+		tooltip = "Right-click and dropdown menus." },
+	{ key = "questTracker", kind = "toggle", default = true, apply = "reload", label = "Quest tracker" },
 	{ key = "lootFrame", kind = "toggle", default = true, apply = "reload", label = "Loot window",
-		tooltip = "The loot window, with item names and borders in quality colors." },
+		tooltip = "Item names and borders in quality colors." },
 	{ key = "bags", kind = "toggle", default = true, apply = "reload", label = "Bags",
-		tooltip = "Blizzard's bag windows, or Bagnon's when you use it (unless you picked another skin "
-			.. "in Bagnon's options)." },
-	{ key = "questFrames", kind = "toggle", default = true, apply = "reload", label = "Quest and gossip windows",
-		tooltip = "The NPC quest window (greeting, details, progress, rewards) and the gossip window, with "
-			.. "light text and reward cards in quality colors." },
-	{ key = "worldMap", kind = "toggle", default = true, apply = "reload", label = "World map and quest log",
-		tooltip = "The world map window and the quest log beside it: flat panel, a breadcrumb navigation bar, "
-			.. "flat map buttons, quest headers as tiles, and quest details with light text and reward cards." },
+		tooltip = "Blizzard bags, or Bagnon if you use it (unless you set another skin in Bagnon)." },
+	{ key = "questFrames", kind = "toggle", default = true, apply = "reload", label = "Quest and gossip windows" },
+	{ key = "worldMap", kind = "toggle", default = true, apply = "reload", label = "World map and quest log" },
 	{ key = "spellBook", kind = "toggle", default = true, apply = "reload", label = "Spellbook and talents",
-		tooltip = "The spellbook and talents window: square spell icons, flat category and spec tabs, "
-			.. "and talents with borders colored by state." },
+		tooltip = "Talent borders show their state: green if you can still put points in, gold when maxed." },
 
 	{ page = "Damage Meter" },
-	{ key = "damageMeter", kind = "toggle", default = true, apply = "reload", label = "Restyle damage meter",
-		tooltip = "Give Blizzard's damage meter the AbsoluteUI look. Its own settings (text size, transparency, "
-			.. "class colors) keep working." },
+	{ key = "damageMeter", kind = "toggle", default = true, apply = "reload", flavor = "modern",
+		label = "Restyle damage meter",
+		tooltip = "Skins Blizzard's damage meter. Its own options still work." },
 	{ key = "meterBarHeight", kind = "range", default = 25, min = 15, max = 40, step = 1, apply = "live",
-		parent = "damageMeter", label = "Bar height",
-		tooltip = "Height of the damage meter rows. Replaces Edit Mode's Bar Height while the meter is restyled." },
+		flavor = "modern", parent = "damageMeter", label = "Bar height",
+		tooltip = "Row height. Overrides Edit Mode's bar height while the skin is on." },
 	{ key = "meterBarSpacing", kind = "range", default = 4, min = 0, max = 12, step = 1, apply = "live",
-		parent = "damageMeter", label = "Bar spacing",
-		tooltip = "Gap between the damage meter rows. 0 makes the bars touch." },
+		flavor = "modern", parent = "damageMeter", label = "Bar spacing",
+		tooltip = "Gap between rows, 0 for none." },
 }
+
+-- The schema for this client: settings of the other flavor go, and so do
+-- pages and sections that end up with no setting.
+local function ForThisClient(schema)
+	local kept, hasSetting, pageHasSetting = {}, false, false
+	for i = #schema, 1, -1 do
+		local entry = schema[i]
+		if not entry.flavor or entry.flavor == NS.flavor then
+			local keep = true
+			if entry.key then
+				hasSetting, pageHasSetting = true, true
+			elseif entry.section then
+				keep, hasSetting = hasSetting, false
+			elseif entry.page then
+				keep, hasSetting, pageHasSetting = pageHasSetting, false, false
+			end
+			if keep then
+				table.insert(kept, 1, entry)
+			end
+		end
+	end
+	return kept
+end
+
+NS.settingsSchema = ForThisClient(SCHEMA)
 
 ---------------------------------------------------------------------------
 -- Schema lookup and validation

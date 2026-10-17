@@ -47,9 +47,26 @@ end
 -- Border colors
 ---------------------------------------------------------------------------
 
+-- Classic clients have no TooltipUtil; the tooltip methods it wraps remain.
+local function DisplayedItem(tooltip)
+	if TooltipUtil then
+		return TooltipUtil.GetDisplayedItem(tooltip)
+	elseif tooltip.GetItem then
+		return tooltip:GetItem()
+	end
+end
+
+local function DisplayedUnit(tooltip)
+	if TooltipUtil then
+		return TooltipUtil.GetDisplayedUnit(tooltip)
+	elseif tooltip.GetUnit then
+		return tooltip:GetUnit()
+	end
+end
+
 local function OnItem(tooltip)
-	if not tiles[tooltip] or not TooltipUtil then return end
-	local _, link, id = TooltipUtil.GetDisplayedItem(tooltip)
+	if not tiles[tooltip] then return end
+	local _, link, id = DisplayedItem(tooltip)
 	local quality = (link or id) and C_Item.GetItemQualityByID(link or id)
 	if quality and quality >= 2 then
 		local r, g, b = C_Item.GetItemQualityColor(quality)
@@ -58,8 +75,8 @@ local function OnItem(tooltip)
 end
 
 local function OnUnit(tooltip)
-	if not tiles[tooltip] or not TooltipUtil then return end
-	local _, unit = TooltipUtil.GetDisplayedUnit(tooltip)
+	if not tiles[tooltip] then return end
+	local _, unit = DisplayedUnit(tooltip)
 	if unit and not NS.IsSecret(unit) and UnitExists(unit) then
 		local color = NS:UnitHealthColor(unit, true)
 		SetBorder(tooltip, color[1], color[2], color[3])
@@ -117,6 +134,6 @@ function M:Init()
 		TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, Safe(OnUnit))
 	end
 
-	SkinHealthBar(GameTooltip and GameTooltip.StatusBar)
+	SkinHealthBar(GameTooltip and (GameTooltip.StatusBar or GameTooltipStatusBar))
 	NS:ApplyFontFamilies(FONTS, 1)
 end

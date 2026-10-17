@@ -15,6 +15,101 @@ local AS = NS.auraStyle
 
 NS.targetSkins = {} -- [Blizzard frame] = skin
 
+---------------------------------------------------------------------------
+-- Blizzard's regions, per client:
+--   power, name, level, skull  the card follows or adopts these
+--   icons                      status icons moved above our art
+--   auraAnchor                 the region Blizzard's aura container hangs
+--                              from (modern only)
+--   HideArt()                  hides the art and the protected bars
+--   ToT(tot)                   the same for the target of target: power,
+--                              name and HideArt()
+---------------------------------------------------------------------------
+
+local function ModernParts(frame, unit)
+	local main = NS:Get(frame, "TargetFrameContent.TargetFrameContentMain")
+	local context = NS:Get(frame, "TargetFrameContent.TargetFrameContentContextual")
+	return {
+		power = NS:Get(main, "ManaBar"),
+		name = main and main.Name,
+		level = main and main.LevelText,
+		skull = context and context.HighLevelTexture,
+		icons = context and { context.LeaderIcon, context.GuideIcon, context.RaidTargetIcon } or {},
+		auraAnchor = NS:Get(frame, "TargetFrameContainer.FrameTexture"),
+		-- Killed regions keep their rect, so the aura container, raid icon and
+		-- combo points anchored to them stay in place.
+		HideArt = function()
+			NS:KillAll(NS:Get(frame, "TargetFrameContainer"), {
+				"FrameTexture", "Portrait", "PortraitMask", "Flash", "BossPortraitFrameTexture",
+			})
+			NS:KillAll(main, { "ReputationColor", "LevelBackgroundCircle" })
+			NS:KillAll(context, {
+				"PvpBackgroundCircle", "PvpBackgroundIcon", "BossIcon", "QuestIcon",
+				"PvpIcon", "PrestigePortrait", "PrestigeBadge", "PetBattleIcon",
+			})
+			NS:Kill(context and context.NumericalThreat)
+			if main then
+				NS:HideProtectedBars(unit .. "-bars", main.HealthBarsContainer, main.ManaBar)
+			end
+		end,
+		ToT = function(tot)
+			return {
+				power = tot.ManaBar,
+				name = tot.Name,
+				HideArt = function()
+					NS:KillAll(tot, { "FrameTexture", "Portrait", "PortraitMask" })
+					NS:HideProtectedBars(unit .. "-tot-bars", tot.HealthBar, tot.ManaBar)
+				end,
+			}
+		end,
+	}
+end
+
+-- Classic regions are globals named after the frame ("TargetFrame...").
+local function ClassicParts(frame, unit)
+	local name = frame:GetName()
+	local texts = frame.textureFrame
+	return {
+		power = frame.PowerBar,
+		name = texts and texts.Name,
+		level = frame.levelText,
+		skull = frame.highLevelTexture,
+		icons = { frame.leaderIcon, frame.raidTargetIcon },
+		HideArt = function()
+			NS:KillGlobals({
+				name .. "Flash", name .. "Background", name .. "NameBackground", name .. "Portrait",
+				name .. "TextureFrameTexture", name .. "TextureFramePVPIcon", name .. "TextureFrameQuestIcon",
+				name .. "TextureFramePetBattleIcon", name .. "TextureFrameDeadText",
+				name .. "TextureFrameUnconsciousText", name .. "NumericalThreat",
+			})
+			NS:KillAll(texts, {
+				"HealthBarText", "HealthBarTextLeft", "HealthBarTextRight",
+				"ManaBarText", "ManaBarTextLeft", "ManaBarTextRight", "overAbsorbGlow", "overHealAbsorbGlow",
+			})
+			NS:HideProtectedBars(unit .. "-bars", frame.HealthBar, frame.PowerBar)
+		end,
+		ToT = function(tot)
+			local totName = tot:GetName()
+			return {
+				power = _G[totName .. "ManaBar"],
+				name = _G[totName .. "TextureFrameName"],
+				HideArt = function()
+					NS:KillGlobals({
+						totName .. "TextureFrameTexture", totName .. "Portrait", totName .. "Background",
+						totName .. "TextureFrameDeadText", totName .. "TextureFrameUnconsciousText",
+						totName .. "Debuff1", totName .. "Debuff2", totName .. "Debuff3", totName .. "Debuff4",
+					})
+					NS:HideProtectedBars(unit .. "-tot-bars", _G[totName .. "HealthBar"], _G[totName .. "ManaBar"])
+				end,
+			}
+		end,
+	}
+end
+
+---------------------------------------------------------------------------
+-- Skin
+---------------------------------------------------------------------------
+
 local Skin = {}
 
 -- spec = {
@@ -35,30 +130,42 @@ end
 
 function Skin:Init()
 	local frame = self.frame
-	local main = NS:Get(frame, "TargetFrameContent.TargetFrameContentMain")
-	local context = NS:Get(frame, "TargetFrameContent.TargetFrameContentContextual")
+	local parts = (NS.isClassic and ClassicParts or ModernParts)(frame, self.unit)
+	self.parts = parts
 	self.card = NS:CreateUnitCard(frame, {
 		layout = NS.layouts.unit,
 		mirror = true,
-		blizzPower = NS:Get(main, "ManaBar"),
-		name = main and main.Name,
-		levelText = main and main.LevelText,
-		levelIcon = context and context.HighLevelTexture,
+		blizzPower = parts.power,
+		name = parts.name,
+		levelText = parts.level,
+		levelIcon = parts.skull,
 		textKey = self.textKey,
 		powerText = true,
 		showLoss = true,
 	})
 
-	self:HideBlizzardArt(main, context)
-	self:AdoptIcons(context)
+	parts.HideArt()
+	self:AdoptIcons(parts.icons)
 	self:InitTargetOfTarget()
+	if NS.isClassic then
+		self:SetClassicHitRect()
+	end
+	-- The focus frame swaps the name's font when it changes size.
+	if frame.SetSmallSize then
+		NS:Hook(frame, "SetSmallSize", function() self.card:AdoptTexts() end)
+	end
 
-	self:AnchorBlizzardAuras()
+	if parts.auraAnchor then
+		self:AnchorBlizzardAuras()
+	end
 	NS:RegisterPixelClient(function()
 		self:AnchorBlizzardAuras()
 		self:AnchorTargetOfTarget() -- its gap is in physical pixels
 	end)
-	NS:Hook(frame, "ConfigureAuraContainer", function() self:ConfigureBlizzardAuras() end)
+	-- Modern frames configure an aura container; classic ones lay out their
+	-- aura buttons on every update.
+	local auraHook = frame.ConfigureAuraContainer and "ConfigureAuraContainer" or "UpdateAuras"
+	NS:Hook(frame, auraHook, function() self:ConfigureBlizzardAuras() end)
 	self:ConfigureBlizzardAuras()
 
 	NS:CreateAuraDisplay(self) -- sets self.auras
@@ -78,32 +185,25 @@ function Skin:Refresh()
 	if self.totCard then self.totCard:Update() end
 end
 
-function Skin:HideBlizzardArt(main, context)
-	local frame = self.frame
-	-- Killed regions keep their rect, so the aura container, raid icon and
-	-- combo points anchored to them stay in place.
-	NS:KillAll(NS:Get(frame, "TargetFrameContainer"), {
-		"FrameTexture", "Portrait", "PortraitMask", "Flash", "BossPortraitFrameTexture",
-	})
-	NS:KillAll(main, { "ReputationColor", "LevelBackgroundCircle" })
-	NS:KillAll(context, {
-		"PvpBackgroundCircle", "PvpBackgroundIcon", "BossIcon", "QuestIcon",
-		"PvpIcon", "PrestigePortrait", "PrestigeBadge", "PetBattleIcon",
-	})
-
-	if main then
-		NS:HideProtectedBars(self.unit .. "-bars", main.HealthBarsContainer, main.ManaBar)
+-- Icons move one by one: on modern clients their layer also holds the
+-- secure aura container. `icons` may have holes: not every client has every
+-- icon.
+function Skin:AdoptIcons(icons)
+	for _, icon in pairs(icons) do
+		NS:Adopt(icon, self.card.overlay)
 	end
 end
 
--- Icons move one by one: their layer also holds the secure aura container.
-function Skin:AdoptIcons(context)
-	if not context then return end
-	local overlay = self.card.overlay
-	for _, key in ipairs({ "LeaderIcon", "GuideIcon", "RaidTargetIcon" }) do
-		NS:Adopt(context[key], overlay)
-	end
-	NS:Kill(context.NumericalThreat)
+-- Classic target frames only take clicks over their old bars; ours is the
+-- panel.
+function Skin:SetClassicHitRect()
+	local frame = self.frame
+	NS:RunSafe(self.unit .. "-hitrect", function()
+		local panel = NS.layouts.unit.panel
+		local width, height = frame:GetSize()
+		-- Mirrored: panel[1] is the inset from the right edge.
+		frame:SetHitRectInsets(width - panel[3], panel[1], -panel[2], height + panel[4])
+	end)
 end
 
 function Skin:UpdateRarity()
@@ -166,9 +266,8 @@ function Skin:InitTargetOfTarget()
 	end
 	self.tot = tot
 
-	NS:KillAll(tot, { "FrameTexture", "Portrait", "PortraitMask" })
-	local mana = tot.ManaBar
-	NS:HideProtectedBars(self.unit .. "-tot-bars", tot.HealthBar, mana)
+	local parts = self.parts.ToT(tot)
+	parts.HideArt()
 	self:AnchorTargetOfTarget()
 	-- The focus frame re-anchors and rescales its ToT on size changes.
 	if frame.SetSmallSize then
@@ -179,8 +278,8 @@ function Skin:InitTargetOfTarget()
 	local card = NS:CreateUnitCard(tot, {
 		layout = NS.layouts.tot,
 		mirror = true,
-		blizzPower = mana,
-		name = tot.Name,
+		blizzPower = parts.power,
+		name = parts.name,
 		poll = 0.2,
 	})
 	self.totCard = card
@@ -197,16 +296,15 @@ function Skin:InitTargetOfTarget()
 end
 
 ---------------------------------------------------------------------------
--- Blizzard's aura container
+-- Blizzard's auras
 --
--- Empty while our display runs; it takes over if aura data becomes
--- unreadable, lined up with the panel through the hidden frame texture it
--- anchors to.
+-- Hidden while our display runs; they take over if aura data becomes
+-- unreadable. The modern aura container is lined up with the panel through
+-- the hidden frame texture it anchors to.
 ---------------------------------------------------------------------------
 
 function Skin:AnchorBlizzardAuras()
-	local frame = self.frame
-	local anchor = NS:Get(frame, "TargetFrameContainer.FrameTexture")
+	local frame, anchor = self.frame, self.parts.auraAnchor
 	if not anchor then return end
 
 	-- Mirrored: rects are measured from the top-right.
@@ -221,11 +319,33 @@ function Skin:AnchorBlizzardAuras()
 		right, bottom - gap - AURA_START_Y)
 end
 
--- Runs after Blizzard's ConfigureAuraContainer, which resets these values.
+-- Classic aura buttons ("TargetFrameBuff1"...) are plain buttons, shown
+-- again on every update.
+local function HideClassicAuras(frame)
+	local name = frame:GetName()
+	for _, kind in ipairs({ "Buff", "Debuff" }) do
+		local i = 1
+		local button = _G[name .. kind .. i]
+		while button do
+			button:Hide()
+			i = i + 1
+			button = _G[name .. kind .. i]
+		end
+	end
+end
+
+-- Runs after Blizzard's ConfigureAuraContainer, which resets these values,
+-- or after a classic frame's UpdateAuras.
 function Skin:ConfigureBlizzardAuras()
 	local frame = self.frame
 	local container = frame.GetAuraContainer and frame:GetAuraContainer()
-	if not container then return end
+	if not container then
+		if self.auras and self.auras:IsActive() then
+			HideClassicAuras(frame)
+			self.auras:Update() -- the ToT or "Buffs on Top" may have changed
+		end
+		return
+	end
 	local function Call(method, ...)
 		if container[method] then
 			pcall(container[method], container, ...)

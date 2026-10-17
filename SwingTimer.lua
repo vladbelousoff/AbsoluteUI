@@ -6,7 +6,7 @@
 
 local _, NS = ...
 
-local M = NS:NewModule("SwingTimer", { setting = "swingTimer", addon = "Blizzard_SwingTimer" })
+local M = NS:NewModule("SwingTimer", { setting = "swingTimer", addon = "Blizzard_SwingTimer", flavor = "modern" })
 
 local TIMERS = {
 	SwingTimerMainHandFrame = "mainHand",
