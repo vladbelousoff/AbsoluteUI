@@ -1,19 +1,22 @@
 name: Release
 
-# A push to main whose AbsoluteUI.toc carries a version that has no tag yet
-# tags it and releases it. Pushing a tag by hand still releases that tag.
+# Pushing to main with a new version in AbsoluteUI.toc tags it, then starts
+# this workflow again on the tag, which packages and uploads it. Pushing a
+# tag by hand releases that tag directly.
 on:
   push:
     branches:
       - main
     tags:
       - "*"
+  workflow_dispatch:
 
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     env:
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
       # Add these repository secrets (and the project IDs in the .toc) to
@@ -31,11 +34,13 @@ jobs:
           sudo apt-get install -y lua-check
           luacheck .
 
-      # Tags pushed with GITHUB_TOKEN don't start another workflow run, so
-      # this run packages the new tag itself.
+      # A tag pushed with GITHUB_TOKEN doesn't start a workflow run (and the
+      # packager won't build a branch push whose commit is tagged), but a
+      # workflow_dispatch does.
       - name: Tag new version
-        id: version
         if: github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           version=$(sed -n 's/^## Version: *//p' AbsoluteUI.toc | tr -d '\r')
           if [ -z "$version" ]; then
@@ -44,15 +49,14 @@ jobs:
           fi
           if git rev-parse -q --verify "refs/tags/$version" > /dev/null; then
             echo "$version is already released."
-            echo "release=false" >> "$GITHUB_OUTPUT"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "$version" -m "AbsoluteUI $version"
-            git push origin "$version"
-            echo "release=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$version" -m "AbsoluteUI $version"
+          git push origin "$version"
+          gh workflow run release.yml --ref "$version"
 
       - name: Package and release
-        if: github.ref_type == 'tag' || steps.version.outputs.release == 'true'
+        if: github.ref_type == 'tag'
         uses: BigWigsMods/packager@v2
