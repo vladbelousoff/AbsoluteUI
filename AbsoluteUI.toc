@@ -2,7 +2,7 @@
 ## Title: AbsoluteUI
 ## Notes: Cleaner, modern look for the default UI. Reskins Blizzard's frames and windows, Edit Mode still handles positions.
 ## Author: n08rainer
-## Version: 1.4.0
+## Version: 1.5.0
 ## Category: Unit Frames
 ## X-License: MIT
 ## X-Curse-Project-ID: 1739217
@@ -37,6 +37,7 @@ Loot.lua
 Bags.lua
 SpellBook.lua
 Talents.lua
+CharacterFrame.lua
 Quests.lua
 WorldMap.lua
 Tooltips.lua
@@ -50,5 +51,6 @@ Classic\SpellBook.lua
 Classic\Talents.lua
 Classic\WorldMap.lua
 Classic\QuestLog.lua
+Classic\CharacterFrame.lua
 
 Options.lua

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0
+
+- Character window skin, Forever and TBC. Gear slots get item quality
+  borders like the bags. Toggle under Skins.
+
 ## 1.4.0
 
 - TBC Anniversary support. Same zip works for TBC and Forever.

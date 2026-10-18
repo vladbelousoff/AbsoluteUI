@@ -22,7 +22,7 @@ default UI, combat included.
 - XP/rep bars and swing timers in the castbar style
 - Skins for tooltips, menus, quest tracker, quest and gossip windows, map and
   quest log, loot, bags ([Bagnon](https://www.curseforge.com/wow/addons/bagnon)
-  too), spellbook and talents, and the damage meter
+  too), character window, spellbook and talents, and the damage meter
 - A bunch of bar textures and fonts to pick from
 
 Swing timers and the damage meter are Forever only, TBC doesn't have them. On

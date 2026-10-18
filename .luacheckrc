@@ -76,6 +76,9 @@ read_globals = {
 	"QuestLogCount", "QuestLogQuestCount", "NavBar_CheckLength",
 	"PetFrame", "PetFrameTexture", "PetPortrait", "PetFrameFlash", "PetAttackModeTexture",
 	"PetHitIndicator", "PetFrameHealthBar", "PetFrameManaBar", "PetName",
+	"CharacterFrame", "PaperDollFrame", "CharacterModelScene", "CharacterStatsPaneScrollBox",
+	"CharacterStatsPanePetScrollBox", "PetPaperDollFrameExpBar", "ColoredProgressBarMixin",
+	"GetInventoryItemTexture", "GetInventoryItemQuality",
 
 	-- Classic (TBC Anniversary) API and frames
 	"C_Reputation", "GetRestState", "ITEMS",
@@ -93,4 +96,13 @@ read_globals = {
 	"QuestLogFrame", "QuestLogListScrollFrame", "QuestLogDetailScrollFrame", "QuestLogTitleText",
 	"QuestLogFrameCloseButton", "QuestLogSkillHighlight", "QuestLogTrackTitle", "QuestLogRequiredMoneyText",
 	"GetQuestLogItemLink",
+	"CHARACTERFRAME_SUBFRAMES", "CharacterNameText", "CharacterFrameCloseButton", "CharacterFramePortrait",
+	"CharacterLevelText", "CharacterModelFrame", "CharacterModelFrameRotateRightButton",
+	"CharacterModelFrameRotateLeftButton", "CharacterAttributesFrame", "PlayerTitleDropdown",
+	"PetPaperDollFrame", "PetModelFrame", "PetModelFrameRotateRightButton", "PetModelFrameRotateLeftButton",
+	"PetAttributesFrame", "PetPaperDollFrameExpBarText", "PetPaperDollCloseButton",
+	"ReputationFrame", "ReputationFrameFactionLabel", "ReputationFrameStandingLabel", "ReputationListScrollFrame",
+	"ReputationDetailFrame", "ReputationDetailCloseButton", "NUM_FACTIONS_DISPLAYED",
+	"SkillFrame", "SkillFrameExpandButtonFrame", "SkillFrameCollapseAllButton", "SkillDetailStatusBar",
+	"SkillListScrollFrame", "SkillDetailScrollFrame", "SkillFrameCancelButton", "SKILLS_TO_DISPLAY",
 }

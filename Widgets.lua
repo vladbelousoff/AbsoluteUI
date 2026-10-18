@@ -363,6 +363,30 @@ function NS:StyleCheckbox(box, mark)
 	end
 end
 
+-- The same look for CheckButtons that draw the box as their normal
+-- texture: a small box centered on the button.
+function NS:SkinCheckButton(check)
+	local box = check and check:GetNormalTexture()
+	if not box then return end
+	box:ClearAllPoints()
+	box:SetPoint("CENTER", check, "CENTER")
+	local mark = check:GetCheckedTexture()
+	NS:StyleCheckbox(box, mark)
+	local disabled = check:GetDisabledCheckedTexture()
+	if disabled and mark then
+		local c = NS.color.dim
+		disabled:SetColorTexture(c[1], c[2], c[3], 1)
+		disabled:ClearAllPoints()
+		disabled:SetAllPoints(mark)
+	end
+	NS:HideTextures(check:GetPushedTexture())
+	local hover = check:GetHighlightTexture()
+	if hover then
+		NS:SetFlat(hover, NS.color.glyphHover, box)
+		hover:SetBlendMode("BLEND")
+	end
+end
+
 local function FlattenButton(button)
 	NS:HideTextures(button:GetNormalTexture(), button:GetPushedTexture(), button:GetDisabledTexture())
 	NS:SetFlat(button:GetHighlightTexture(), NS.color.glyphHover, button)
@@ -654,6 +678,33 @@ function NS:SkinChevronDropdown(dropdown)
 		local v = NS:ControlBrightness(control)
 		NS:SetStrokeBrightness(strokes, v)
 		NS:SetControlBoxState(box, v)
+	end)
+	return box
+end
+
+-- Dropdowns that show their value (WowStyle1DropdownTemplate) as a box with
+-- the text and a chevron in the last `arrowWidth` units. Blizzard redraws
+-- the arrow on every state change. Returns the box.
+function NS:SkinTextDropdown(dropdown, arrowWidth)
+	if not dropdown then return nil end
+	arrowWidth = arrowWidth or 24
+	NS:HideTextures(dropdown.Background)
+	local box = NS:CreateControlBox(dropdown)
+	box:SetInside(true)
+	local strokes = NS:CreateChevron(dropdown, "down", "RIGHT", -arrowWidth / 2, 0)
+	local text = dropdown.Text
+	if text then
+		NS:StyleFont(text, 12, "LEFT")
+		text:ClearAllPoints()
+		text:SetPoint("LEFT", dropdown, "LEFT", 8, 0)
+		text:SetPoint("RIGHT", dropdown, "RIGHT", -arrowWidth, 0)
+	end
+	NS:HookButtonStates(dropdown, function(control)
+		NS:HideTextures(control.Arrow)
+		local v = NS:ControlBrightness(control)
+		NS:SetStrokeBrightness(strokes, v)
+		NS:SetControlBoxState(box, v)
+		if text then text:SetTextColor(v, v, v) end
 	end)
 	return box
 end

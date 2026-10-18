@@ -269,28 +269,11 @@ end
 -- Floors of dungeons and multi-level zones, right of the pin.
 local function SkinFloorDropdown(dropdown, canvas, pin)
 	if not dropdown then return end
-	NS:HideTextures(dropdown.Background)
 	dropdown:SetHeight(MAP_BUTTON)
 	dropdown:ClearAllPoints()
 	local x = MARGIN + (pin and MAP_BUTTON + MARGIN or 0)
 	dropdown:SetPoint("TOPLEFT", canvas, "TOPLEFT", x, -MARGIN)
-
-	local box = ControlBox(dropdown)
-	local strokes = NS:CreateChevron(dropdown, "down", "RIGHT", -MAP_BUTTON / 2, 0)
-	local text = dropdown.Text
-	if text then
-		NS:StyleFont(text, 12, "LEFT")
-		text:ClearAllPoints()
-		text:SetPoint("LEFT", dropdown, "LEFT", 8, 0)
-		text:SetPoint("RIGHT", dropdown, "RIGHT", -MAP_BUTTON, 0)
-	end
-	NS:HookButtonStates(dropdown, function(self)
-		NS:HideTextures(self.Arrow)
-		local v = NS:ControlBrightness(self)
-		NS:SetStrokeBrightness(strokes, v)
-		NS:SetControlBoxState(box, v)
-		if text then text:SetTextColor(v, v, v) end
-	end)
+	NS:SkinTextDropdown(dropdown, MAP_BUTTON)
 end
 
 -- Shows or hides the quest log: the window grows to the right, or back.

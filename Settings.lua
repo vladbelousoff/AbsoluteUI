@@ -100,6 +100,8 @@ local SCHEMA = {
 	{ key = "worldMap", kind = "toggle", default = true, apply = "reload", label = "World map and quest log" },
 	{ key = "spellBook", kind = "toggle", default = true, apply = "reload", label = "Spellbook and talents",
 		tooltip = "Talent borders show their state: green if you can still put points in, gold when maxed." },
+	{ key = "characterFrame", kind = "toggle", default = true, apply = "reload", label = "Character window",
+		tooltip = "Gear slots get item quality borders." },
 
 	{ page = "Damage Meter" },
 	{ key = "damageMeter", kind = "toggle", default = true, apply = "reload", flavor = "modern",
