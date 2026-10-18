@@ -112,6 +112,61 @@ NS:RegisterFontFace("russoone", "Russo One", FONTS .. "RussoOne-Regular.ttf")
 NS:RegisterFontFace("philosopher", "Philosopher", FONTS .. "Philosopher-Bold.ttf")
 
 ---------------------------------------------------------------------------
+-- LibSharedMedia (bundled with BigWigs, DBM, Details! and others): our bar
+-- textures and bundled fonts, as "AbsoluteUI <label>". Returns the library,
+-- or nil when no addon brought it.
+---------------------------------------------------------------------------
+
+local sharedMedia
+
+function NS:SharedMediaName(label)
+	return "AbsoluteUI " .. label
+end
+
+function NS:GetSharedMedia()
+	if sharedMedia then return sharedMedia end
+	local libStub = _G.LibStub
+	local lsm = libStub and libStub("LibSharedMedia-3.0", true)
+	if not lsm then return nil end
+	for _, entry in ipairs(NS.barTextures) do
+		if entry.file:find(MEDIA, 1, true) then
+			lsm:Register("statusbar", NS:SharedMediaName(entry.label), entry.file)
+		end
+	end
+	for _, entry in ipairs(NS.fontFaces) do
+		local file = entry.members.roman
+		if file:find(MEDIA, 1, true) then
+			lsm:Register("font", NS:SharedMediaName(entry.label), file, lsm.LOCALE_BIT_western + lsm.LOCALE_BIT_ruRU)
+		end
+	end
+	sharedMedia = lsm
+	return lsm
+end
+
+-- The current bar texture and bar font as shared media names, registering
+-- them first. Blizzard's own come under their names in AbsoluteUI.
+function NS:SharedBarMedia()
+	local lsm = NS:GetSharedMedia()
+	if not lsm then return nil, nil end
+	local texture = Find(NS.barTextures, NS.db and NS.db.barTexture) or NS.barTextures[1]
+	local face = Find(NS.fontFaces, NS.db and NS.db.barFont) or NS.fontFaces[1]
+	local textureName, fontName = NS:SharedMediaName(texture.label), NS:SharedMediaName(face.label)
+	if not lsm:IsValid("statusbar", textureName) then
+		lsm:Register("statusbar", textureName, texture.file)
+	end
+	if not lsm:IsValid("font", fontName) then
+		lsm:Register("font", fontName, face.members.roman, lsm.LOCALE_BIT_western + lsm.LOCALE_BIT_ruRU)
+	end
+	return textureName, fontName
+end
+
+-- The roman font file of the bar font setting.
+function NS:GetBarFontFile()
+	local face = Find(NS.fontFaces, NS.db and NS.db.barFont) or NS.fontFaces[1]
+	return face.members.roman
+end
+
+---------------------------------------------------------------------------
 -- Fonts
 ---------------------------------------------------------------------------
 

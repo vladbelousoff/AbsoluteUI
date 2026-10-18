@@ -229,17 +229,33 @@ local function SetParent(initializer, parentKey, initializers)
 	end
 end
 
-local function BuildPages(root)
-	local category, layout
-	local initializers = {}
+-- Settings for addons that aren't installed are left out.
+local function VisibleSchema()
+	local list = {}
 	for _, entry in ipairs(NS.settingsSchema) do
+		if not entry.addon or NS:IsAddOnInstalled(entry.addon) then
+			table.insert(list, entry)
+		end
+	end
+	return list
+end
+
+-- A section header is added with the first setting of its section, so
+-- sections with nothing to show don't get one.
+local function BuildPages(root)
+	local category, layout, section
+	local initializers = {}
+	for _, entry in ipairs(VisibleSchema()) do
 		if entry.page then
 			category, layout = Settings.RegisterVerticalLayoutSubcategory(root, entry.page)
+			section = nil
 		elseif entry.section then
-			if CreateSettingsListSectionHeaderInitializer then
-				layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(entry.section))
-			end
+			section = entry.section
 		elseif controls[entry.kind] then
+			if section and CreateSettingsListSectionHeaderInitializer then
+				layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(section))
+			end
+			section = nil
 			local setting = RegisterSetting(category, entry)
 			local ok, initializer = NS.SafeCall(controls[entry.kind], category, setting, entry)
 			if ok then

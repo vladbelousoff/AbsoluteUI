@@ -365,9 +365,19 @@ end
 
 -- The same look for CheckButtons that draw the box as their normal
 -- texture: a small box centered on the button.
+-- Controls skinned by the helpers below, so skinning one twice (a window
+-- skinned by hand, then by NS:SkinDescendants) does nothing.
+local skinnedControls = setmetatable({}, { __mode = "k" })
+
+local function FirstTime(control)
+	if skinnedControls[control] then return false end
+	skinnedControls[control] = true
+	return true
+end
+
 function NS:SkinCheckButton(check)
 	local box = check and check:GetNormalTexture()
-	if not box then return end
+	if not box or not FirstTime(check) then return end
 	box:ClearAllPoints()
 	box:SetPoint("CENTER", check, "CENTER")
 	local mark = check:GetCheckedTexture()
@@ -403,7 +413,7 @@ end
 
 -- Flat close button with an "x" drawn in strokes, as bold as the "+".
 function NS:SkinCloseButton(button)
-	if not button then return end
+	if not button or not FirstTime(button) then return end
 	FlattenButton(button)
 	NS:CreateCross(button)
 end
@@ -413,6 +423,201 @@ end
 function NS:SkinPanelFrame(frame)
 	NS:CreateTile(frame, 0, 0, NS.color.panel)
 	return NS:SkinPanelChrome(frame)
+end
+
+---------------------------------------------------------------------------
+-- Flat backdrops: frames other addons draw with BackdropTemplate keep their
+-- backdrop and the colors they give it, but the art becomes a solid fill
+-- and a 1px edge. `neutral` ones also lose their tint (the brightness
+-- stays, so hover states still show) and keep a black edge.
+---------------------------------------------------------------------------
+
+local flatBackdrops = {} -- [frame] = { neutral = bool, info = original backdrop }
+local recoloring = {}
+
+local function Neutral(r, g, b, a)
+	local l = 0.30 * r + 0.59 * g + 0.11 * b
+	return l * 0.92, l * 0.92, l, a
+end
+
+local function ApplyFlatBackdrop(frame)
+	local neutral = flatBackdrops[frame].neutral
+	local r, g, b, a = frame:GetBackdropColor()
+	local br, bg, bb, ba = frame:GetBackdropBorderColor()
+	local px = NS:Px(frame)
+	recoloring[frame] = true
+	frame:SetBackdrop({
+		bgFile = NS.SOLID, edgeFile = NS.SOLID, edgeSize = px,
+		insets = { left = px, right = px, top = px, bottom = px },
+	})
+	if r then
+		if neutral then r, g, b, a = Neutral(r, g, b, a) end
+		frame:SetBackdropColor(r, g, b, a)
+	end
+	if neutral then
+		frame:SetBackdropBorderColor(unpack(NS.color.border))
+	elseif br then
+		frame:SetBackdropBorderColor(br, bg, bb, ba)
+	end
+	recoloring[frame] = nil
+end
+
+-- The hooks stay after NS:RestoreBackdrop, so they check the frame is
+-- still flat.
+local function OnSetBackdrop(frame, info)
+	local state = flatBackdrops[frame]
+	if info and state and not recoloring[frame] then
+		state.info = info
+		ApplyFlatBackdrop(frame)
+	end
+end
+
+local function OnSetBackdropColor(frame, r, g, b, a)
+	local state = flatBackdrops[frame]
+	if recoloring[frame] or not r or not (state and state.neutral) then return end
+	recoloring[frame] = true
+	frame:SetBackdropColor(Neutral(r, g, b, a))
+	recoloring[frame] = nil
+end
+
+local function OnSetBackdropBorderColor(frame)
+	local state = flatBackdrops[frame]
+	if recoloring[frame] or not (state and state.neutral) then return end
+	recoloring[frame] = true
+	frame:SetBackdropBorderColor(unpack(NS.color.border))
+	recoloring[frame] = nil
+end
+
+NS:RegisterPixelClient(function()
+	for frame in pairs(flatBackdrops) do
+		if frame.backdropInfo then ApplyFlatBackdrop(frame) end
+	end
+end)
+
+local backdropHooked = {}
+
+function NS:FlattenBackdrop(frame, neutral)
+	if not frame or flatBackdrops[frame] or not frame.SetBackdrop or not frame.backdropInfo then return end
+	if not frame.backdropInfo.edgeFile and not frame.backdropInfo.bgFile then return end
+	flatBackdrops[frame] = {
+		neutral = neutral and true or false,
+		info = frame.backdropInfo,
+		color = { frame:GetBackdropColor() },
+		borderColor = { frame:GetBackdropBorderColor() },
+	}
+	ApplyFlatBackdrop(frame)
+	if not backdropHooked[frame] then
+		backdropHooked[frame] = true
+		hooksecurefunc(frame, "SetBackdrop", OnSetBackdrop)
+		hooksecurefunc(frame, "SetBackdropColor", OnSetBackdropColor)
+		hooksecurefunc(frame, "SetBackdropBorderColor", OnSetBackdropBorderColor)
+	end
+end
+
+-- Puts a flattened frame's own backdrop back, with the colors it had when
+-- it was flattened, for frames that go back to a pool other addons share.
+function NS:RestoreBackdrop(frame)
+	local state = frame and flatBackdrops[frame]
+	if not state then return end
+	flatBackdrops[frame] = nil
+	frame:SetBackdrop(state.info)
+	if state.color[1] then frame:SetBackdropColor(unpack(state.color)) end
+	if state.borderColor[1] then frame:SetBackdropBorderColor(unpack(state.borderColor)) end
+end
+
+-- The same for `root` and every frame below it.
+function NS:FlattenBackdrops(root, neutral)
+	if not root or not root.GetChildren then return end
+	NS:FlattenBackdrop(root, neutral)
+	for _, child in ipairs({ root:GetChildren() }) do
+		NS:FlattenBackdrops(child, neutral)
+	end
+end
+
+---------------------------------------------------------------------------
+-- Other addons' windows: their Blizzard-template controls are found by the
+-- keys the templates give them and skinned like ours. Safe to run again on
+-- the same frames after the addon builds more of its window.
+---------------------------------------------------------------------------
+
+local seen = setmetatable({}, { __mode = "k" })
+
+local function IsSquareCheck(frame)
+	if not frame:IsObjectType("CheckButton") or not frame:GetNormalTexture() or not frame:GetCheckedTexture() then
+		return false
+	end
+	local w, h = frame:GetSize()
+	return w > 0 and w <= 32 and h <= 32
+end
+
+-- UIPanelCloseButton: the red atlas on modern clients, the old texture on
+-- classic ones.
+local function IsCloseButton(frame)
+	if not frame:IsObjectType("Button") then return false end
+	local normal = frame:GetNormalTexture()
+	if not normal then return false end
+	local atlas, file = normal:GetAtlas(), normal:GetTexture()
+	return (type(atlas) == "string" and atlas:find("Exit") ~= nil)
+		or (type(file) == "string" and file:find("MinimizeButton") ~= nil)
+end
+
+local SkinDescendant -- below
+
+-- Rows of ScrollBox lists are skinned as the list creates them. The
+-- callback gets (owner, frame) from the list, (frame, data) for existing
+-- rows.
+local function WatchList(scrollBox)
+	if not (ScrollUtil and ScrollUtil.AddInitializedFrameCallback and scrollBox.ForEachFrame) then return end
+	local function OnRow(a, b)
+		local row = (type(b) == "table" and b.GetObjectType) and b or a
+		if type(row) == "table" and row.GetObjectType then
+			SkinDescendant(row)
+		end
+	end
+	ScrollUtil.AddInitializedFrameCallback(scrollBox, OnRow, seen, true)
+end
+
+function SkinDescendant(frame)
+	if not seen[frame] then
+		seen[frame] = true
+		if frame.NineSlice and frame.TooltipBackdropOnLoad then -- TooltipBackdropTemplate
+			frame.NineSlice:SetAlpha(0)
+			NS:CreateTile(frame, 0, 0, NS.color.tile, true)
+		elseif frame.Track and frame.Track.Thumb and frame.Back then -- MinimalScrollBar
+			NS:SkinScrollBar(frame)
+		elseif frame:IsObjectType("Slider") and frame.ScrollUpButton then -- UIPanelScrollBarTemplate
+			NS:SkinSliderScrollBar(frame)
+		elseif frame:IsObjectType("EditBox") and frame.Left and frame.Middle and frame.Right then
+			NS:SkinSearchBox(frame)
+		elseif frame:IsObjectType("Button") and frame.Left and frame.Middle and frame.Right
+			and not frame.TopLeft and frame:GetFontString() then -- UIPanelButtonTemplate, not the stretch kind
+			NS:SkinPanelButton(frame)
+		elseif IsSquareCheck(frame) then
+			NS:SkinCheckButton(frame)
+		elseif IsCloseButton(frame) then
+			NS:SkinCloseButton(frame)
+		elseif frame.ScrollTarget and frame.ForEachFrame then
+			WatchList(frame)
+		end
+	end
+	for _, child in ipairs({ frame:GetChildren() }) do
+		SkinDescendant(child)
+	end
+end
+
+function NS:SkinDescendants(root)
+	if root and root.GetChildren then
+		SkinDescendant(root)
+	end
+end
+
+-- Marks frames the caller skins its own way, so NS:SkinDescendants leaves
+-- them alone.
+function NS:SkipDescendant(...)
+	for i = 1, select("#", ...) do
+		local frame = select(i, ...)
+		if frame then seen[frame] = true end
+	end
 end
 
 -- Classic windows draw their border from pieces of their own (and a
@@ -548,16 +753,20 @@ end
 -- UIPanelButtonTemplate buttons. Blizzard swaps the slice textures on
 -- every click and enable change, so they're hidden by alpha. Returns the
 -- tile.
+local panelButtonTiles = setmetatable({}, { __mode = "k" })
+
 function NS:SkinPanelButton(button)
 	if not button then return nil end
+	if panelButtonTiles[button] then return panelButtonTiles[button] end
 	NS:HideTextures(button.Left, button.Middle, button.Right)
 	local tile = NS:CreateTile(button, 0, 0, NS.color.tile, true)
+	panelButtonTiles[button] = tile
 	NS:SetFlat(button:GetHighlightTexture(), NS.color.rowHover, tile.fill)
 	return tile
 end
 
 function NS:SkinSearchBox(box)
-	if not box then return end
+	if not box or not FirstTime(box) then return end
 	NS:HideTextures(box.Left, box.Middle, box.Right)
 	NS:CreateTile(box, -2, 0, NS.color.tile, true)
 end
@@ -766,7 +975,7 @@ end
 function NS:SkinScrollBar(bar)
 	local track = bar and bar.Track
 	local thumb = track and track.Thumb
-	if not thumb then return end
+	if not thumb or not FirstTime(bar) then return end
 	NS:HideTextures(track.Begin, track.Middle, track.End)
 	local rail = NS:CreateTexture(track, "BACKGROUND", 0, NS.color.highlight)
 	rail:SetPoint("TOP", track, "TOP")
@@ -800,7 +1009,7 @@ local function SkinSliderStepper(button, direction)
 end
 
 function NS:SkinSliderScrollBar(bar)
-	if not bar or not bar.GetThumbTexture then return end
+	if not bar or not bar.GetThumbTexture or not FirstTime(bar) then return end
 	local rail = NS:CreateTexture(bar, "BACKGROUND", 0, NS.color.highlight)
 	rail:SetPoint("TOP", bar, "TOP")
 	rail:SetPoint("BOTTOM", bar, "BOTTOM")

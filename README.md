@@ -23,6 +23,7 @@ default UI, combat included.
 - Skins for tooltips, menus, quest tracker, quest and gossip windows, map and
   quest log, loot, bags ([Bagnon](https://www.curseforge.com/wow/addons/bagnon)
   too), character window, spellbook and talents, and the damage meter
+- Skins for other addons, see below
 - A bunch of bar textures and fonts to pick from
 
 Swing timers and the damage meter are Forever only, TBC doesn't have them. On
@@ -47,8 +48,17 @@ in Edit Mode, same as the default UI.
 
 ## Other addons
 
-Bagnon gets an AbsoluteUI skin unless you picked another one in Bagnon. If
-another addon already skins something, turn that skin off in the settings.
+[Bagnon](https://www.curseforge.com/wow/addons/bagnon) gets an AbsoluteUI skin
+unless you picked another one in Bagnon. Attune, Dungeon Journal, Clique,
+Gargul, Mapster and Leatrix Maps are skinned too, each with a toggle under
+Skins > Other Addons (only there if you have the addon). Some of Gargul's
+windows only get the frame done for now.
+
+Details!, BigWigs and DBM have their own skin systems, so there you pick the
+AbsoluteUI skin yourself: Details! > Skin Selection, BigWigs > Bars > Style,
+or DBM's timer bar options.
+
+If another addon already skins something, turn that skin off in the settings.
 
 ## Bugs
 

@@ -2,7 +2,7 @@
 ## Title: AbsoluteUI
 ## Notes: Cleaner, modern look for the default UI. Reskins Blizzard's frames and windows, Edit Mode still handles positions.
 ## Author: n08rainer
-## Version: 1.5.0
+## Version: 1.6.0
 ## Category: Unit Frames
 ## X-License: MIT
 ## X-Curse-Project-ID: 1739217
@@ -52,5 +52,16 @@ Classic\Talents.lua
 Classic\WorldMap.lua
 Classic\QuestLog.lua
 Classic\CharacterFrame.lua
+
+# Other addons
+Skins\Attune.lua
+Skins\DungeonJournal.lua
+Skins\Clique.lua
+Skins\Gargul.lua
+Skins\Mapster.lua
+Skins\LeatrixMaps.lua
+Skins\Details.lua
+Skins\BigWigs.lua
+Skins\DBM.lua
 
 Options.lua

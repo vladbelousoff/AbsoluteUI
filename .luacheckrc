@@ -105,4 +105,8 @@ read_globals = {
 	"ReputationDetailFrame", "ReputationDetailCloseButton", "NUM_FACTIONS_DISPLAYED",
 	"SkillFrame", "SkillFrameExpandButtonFrame", "SkillFrameCollapseAllButton", "SkillDetailStatusBar",
 	"SkillListScrollFrame", "SkillDetailScrollFrame", "SkillFrameCancelButton", "SKILLS_TO_DISPLAY",
+
+	-- Other addons' frames are read through _G; their windows close on
+	-- Escape through this list.
+	"UISpecialFrames",
 }

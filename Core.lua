@@ -225,9 +225,13 @@ end
 --
 -- local M = NS:NewModule(name, {
 --   setting = "key",          -- toggle that enables the module (read at login)
---   addon = "Blizzard_Name",  -- Init waits until this addon has loaded
+--   addon = "Blizzard_Name",  -- Init waits until this addon has loaded (never,
+--                             -- if it isn't installed)
 --   flavor = "modern",        -- only on this client (NS.flavor); elsewhere the
 --                             -- module is returned unregistered and never loads
+--   early = true,             -- with `addon`: Init runs as soon as that addon
+--                             -- loads, even before login (for skins another
+--                             -- addon must know about while it sets up)
 -- })
 --
 -- Optional, error-isolated methods:
@@ -236,6 +240,7 @@ end
 ---------------------------------------------------------------------------
 
 local modules = {}
+local early = {} -- [addon name] = { `early` module, ... }
 NS.modules = {}
 
 local ModuleMixin = {}
@@ -247,6 +252,7 @@ end
 function ModuleMixin:GetState()
 	if self.failed then return "loaded with an error during setup" end
 	if self.loaded then return "loaded" end
+	if self.absent then return self.addon .. " not installed" end
 	if self.waiting then return "waiting for " .. self.addon end
 	if not NS.loggedIn then return "pending" end
 	if not self:IsEnabled() then return "disabled" end
@@ -261,6 +267,10 @@ function NS:NewModule(name, spec)
 	assert(not NS.modules[name], "AbsoluteUI: duplicate module " .. tostring(name))
 	table.insert(modules, module)
 	NS.modules[name] = module
+	if module.early and module.addon then
+		early[module.addon] = early[module.addon] or {}
+		table.insert(early[module.addon], module)
+	end
 	return module
 end
 
@@ -287,9 +297,31 @@ local function IsAddOnLoaded(addon)
 	return true -- can't tell; the module checks for its frames itself
 end
 
+-- Whether an addon is in the AddOns folder at all, loaded or not.
+-- Blizzard's always count.
+function NS:IsAddOnInstalled(addon)
+	if addon:find("^Blizzard_") then
+		return true
+	end
+	if C_AddOns and C_AddOns.DoesAddOnExist then
+		return C_AddOns.DoesAddOnExist(addon)
+	end
+	if C_AddOns and C_AddOns.GetAddOnInfo then
+		local ok, name, _, _, _, reason = pcall(C_AddOns.GetAddOnInfo, addon)
+		return ok and name ~= nil and reason ~= "MISSING"
+	end
+	return true
+end
+
 local waiting = {} -- [addon name] = { module, ... }
 
 NS:On("ADDON_LOADED", function(_, addon)
+	-- Before login, only `early` modules; the rest load at PLAYER_LOGIN.
+	for _, module in ipairs(early[addon] or {}) do
+		if NS.db and not NS.loggedIn and module:IsEnabled() then
+			LoadModule(module)
+		end
+	end
 	local list = waiting[addon]
 	if not list then return end
 	waiting[addon] = nil
@@ -311,7 +343,9 @@ NS:On("PLAYER_LOGIN", function()
 	NS.loggedIn = true
 	for _, module in ipairs(modules) do
 		if module:IsEnabled() then
-			if module.addon and not IsAddOnLoaded(module.addon) then
+			if module.addon and not IsAddOnLoaded(module.addon) and not NS:IsAddOnInstalled(module.addon) then
+				module.absent = true
+			elseif module.addon and not IsAddOnLoaded(module.addon) then
 				module.waiting = true
 				waiting[module.addon] = waiting[module.addon] or {}
 				table.insert(waiting[module.addon], module)

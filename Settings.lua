@@ -15,6 +15,8 @@
 --            "reload":  takes effect after a UI reload
 --   flavor   "modern" | "classic": the setting only exists on that client
 --            (NS.flavor); pages and sections left empty are dropped too
+--   addon    folder name of another addon: the options only show the setting
+--            while that addon is installed (the saved value is kept)
 
 local _, NS = ...
 
@@ -102,6 +104,25 @@ local SCHEMA = {
 		tooltip = "Talent borders show their state: green if you can still put points in, gold when maxed." },
 	{ key = "characterFrame", kind = "toggle", default = true, apply = "reload", label = "Character window",
 		tooltip = "Gear slots get item quality borders." },
+	{ section = "Other Addons" },
+	{ key = "skinAttune", kind = "toggle", default = true, apply = "reload", addon = "Attune", label = "Attune",
+		tooltip = "Quest chain colors stay as they are." },
+	{ key = "skinDungeonJournal", kind = "toggle", default = true, apply = "reload", addon = "ForeverDungeonJournal",
+		label = "Dungeon Journal", tooltip = "Loot gets item quality borders." },
+	{ key = "skinClique", kind = "toggle", default = true, apply = "reload", addon = "Clique", label = "Clique" },
+	{ key = "skinGargul", kind = "toggle", default = true, apply = "reload", addon = "Gargul", label = "Gargul",
+		tooltip = "Some of its windows only get the frame done, not the stuff inside." },
+	{ key = "skinMapster", kind = "toggle", default = true, apply = "reload", addon = "Mapster", label = "Mapster",
+		tooltip = "Only does something with the World map skin on." },
+	{ key = "skinLeatrixMaps", kind = "toggle", default = true, apply = "reload", addon = "Leatrix_Maps",
+		label = "Leatrix Maps",
+		tooltip = "Zone menus, coordinates and the options window. The map itself is the World map skin." },
+	{ key = "skinDetails", kind = "toggle", default = true, apply = "reload", addon = "Details", label = "Details!",
+		tooltip = "Pick the AbsoluteUI skin in Details! > Skin Selection." },
+	{ key = "skinBigWigs", kind = "toggle", default = true, apply = "reload", addon = "BigWigs", label = "BigWigs",
+		tooltip = "Pick the AbsoluteUI style in BigWigs > Bars > Style." },
+	{ key = "skinDBM", kind = "toggle", default = true, apply = "reload", addon = "DBM-StatusBarTimers",
+		label = "Deadly Boss Mods", tooltip = "Pick the AbsoluteUI skin in DBM's timer bar options." },
 
 	{ page = "Damage Meter" },
 	{ key = "damageMeter", kind = "toggle", default = true, apply = "reload", flavor = "modern",

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0
+
+- Other addons get skinned now too. Attune, Dungeon Journal, Clique, Gargul,
+  Mapster and Leatrix Maps so far, toggles are under Skins > Other Addons.
+- Details!, BigWigs and DBM have an AbsoluteUI skin you can pick in their
+  settings.
+- The bar textures and fonts show up in other addons' media lists (anything
+  using LibSharedMedia).
+
 ## 1.5.0
 
 - Character window skin, Forever and TBC. Gear slots get item quality
